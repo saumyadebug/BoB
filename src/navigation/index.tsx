@@ -14,6 +14,7 @@ import GroupSettingsScreen from '@/screens/Groups/GroupSettingsScreen';
 import CreateActivityScreen from '@/screens/Groups/CreateActivityScreen';
 import ActivityDetailScreen from '@/screens/Groups/ActivityDetailScreen';
 import SubmissionFlowScreen from '@/screens/Submission/SubmissionFlowScreen';
+import ComparativeScreen from '@/screens/Groups/ComparativeScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -63,6 +64,11 @@ export default function RootNavigator() {
             name="SubmissionFlow"
             component={SubmissionFlowScreen}
             options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+          />
+          <Stack.Screen
+            name="Comparative"
+            component={ComparativeScreen}
+            options={{ animation: 'slide_from_bottom' }}
           />
         </>
       )}

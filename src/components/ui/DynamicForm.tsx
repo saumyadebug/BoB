@@ -110,9 +110,9 @@ function FieldRenderer({ field, control, error }: { field: FieldDefinition; cont
           {field.label}
           {field.required && <Text variant="headingSm" color={COLORS.accent}> *</Text>}
         </Text>
-        {field.unit && (
+        {field.unit ? (
           <Text variant="caption" color={COLORS.inkSecondary}>({field.unit})</Text>
-        )}
+        ) : null}
       </View>
 
       <Controller
@@ -125,11 +125,11 @@ function FieldRenderer({ field, control, error }: { field: FieldDefinition; cont
         )}
       />
 
-      {error && (
+      {error ? (
         <Text variant="caption" color={COLORS.danger} style={styles.errorText}>
           {error}
         </Text>
-      )}
+      ) : null}
     </View>
   );
 }

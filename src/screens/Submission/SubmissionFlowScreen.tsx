@@ -1,24 +1,32 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, Pressable, SafeAreaView, Platform } from 'react-native';
+import { View, StyleSheet, Text, Pressable, SafeAreaView, Platform, KeyboardAvoidingView, ScrollView, Image } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, Activity } from '@/types';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOWS } from '@/constants/theme';
+import { COLORS, TYPOGRAPHY, SPACE, RADIUS, SHADOWS } from '@/constants/theme';
 import { Icon } from '@/components/ui/Icon';
+import { DynamicForm } from '@/components/ui/DynamicForm';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { PreviewCard } from '@/components/ui/PreviewCard';
+import { PRESET_ACTIVITIES } from '@/constants/activityTemplates';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { Image } from 'react-native';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SubmissionFlow'>;
-type Step = 'ACTIVITY_SELECT' | 'CAMERA' | 'FORM' | 'CONFIRM' | 'SUCCESS';
+type Step = 'ACTIVITY_SELECT' | 'CAMERA' | 'FORM' | 'DETAILS' | 'CONFIRM' | 'SUCCESS';
 
 export default function SubmissionFlowScreen({ navigation, route }: Props) {
   const [step, setStep] = useState<Step>(route.params?.activityId ? 'CAMERA' : 'ACTIVITY_SELECT');
-  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<any | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [formData, setFormData] = useState<any>({});
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleClose = () => navigation.goBack();
-  const handleSelectActivity = (activity: any) => { setSelectedActivity(activity); setStep('CAMERA'); };
+  const handleSelectActivity = () => { setSelectedActivity(PRESET_ACTIVITIES[0]); setStep('CAMERA'); };
 
   const handleTakePhoto = async () => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
@@ -79,7 +87,8 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
           onPress={() => {
             if (step === 'CAMERA') setStep('ACTIVITY_SELECT');
             else if (step === 'FORM') setStep('CAMERA');
-            else if (step === 'CONFIRM') setStep('FORM');
+            else if (step === 'DETAILS') setStep('FORM');
+            else if (step === 'CONFIRM') setStep('DETAILS');
           }}>
           <Icon name="arrow-left" size={24} color={COLORS.inkBase} />
         </Pressable>
@@ -101,8 +110,8 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
             {renderHeader('Select Activity', false)}
             <View style={styles.content}>
               <Text style={styles.placeholderText}>Activity Selector UI will go here.</Text>
-              <Pressable style={styles.mockBtn} onPress={() => handleSelectActivity({ id: 'mock' })}>
-                <Text style={styles.mockBtnText}>Select Mock Activity</Text>
+              <Pressable style={styles.mockBtn} onPress={handleSelectActivity}>
+                <Text style={styles.mockBtnText}>Select Mock Activity (Gym)</Text>
               </Pressable>
             </View>
           </View>
@@ -126,16 +135,16 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
               ) : (
                 <>
                   <Icon name="camera" size={64} color={COLORS.inkTertiary} />
-                  <Text style={[styles.placeholderText, { marginTop: SPACING.md }]}>Show the crew you did it!</Text>
+                  <Text style={[styles.placeholderText, { marginTop: SPACE.md }]}>Show the crew you did it!</Text>
                   
                   <View style={styles.cameraButtons}>
                     <Pressable style={styles.primaryBtn} onPress={handleTakePhoto}>
                       <Icon name="camera" size={20} color={COLORS.surfaceMain} />
-                      <Text style={[styles.primaryBtnText, { marginLeft: SPACING.sm }]}>Take Photo</Text>
+                      <Text style={[styles.primaryBtnText, { marginLeft: SPACE.sm }]}>Take Photo</Text>
                     </Pressable>
                     <Pressable style={styles.secondaryBtn} onPress={handlePickImage}>
                       <Icon name="image" size={20} color={COLORS.inkBase} />
-                      <Text style={[styles.secondaryBtnText, { marginLeft: SPACING.sm }]}>Gallery</Text>
+                      <Text style={[styles.secondaryBtnText, { marginLeft: SPACE.sm }]}>Gallery</Text>
                     </Pressable>
                   </View>
 
@@ -148,25 +157,96 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
           </View>
         )}
         {step === 'FORM' && (
-          <View style={styles.stepContainer}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.stepContainer}>
             {renderHeader('Details')}
-            <View style={styles.content}>
-              <Text style={styles.placeholderText}>Dynamic Form UI will go here.</Text>
-              <Pressable style={styles.mockBtn} onPress={() => setStep('CONFIRM')}>
-                <Text style={styles.mockBtnText}>Continue</Text>
-              </Pressable>
-            </View>
-          </View>
+            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+              {selectedActivity?.templateFields ? (
+                <DynamicForm 
+                  fields={selectedActivity.templateFields}
+                  submitLabel="Continue"
+                  onSubmit={(data) => {
+                    setFormData(data);
+                    setStep('DETAILS');
+                  }}
+                />
+              ) : (
+                <View style={styles.content}>
+                  <Text style={styles.placeholderText}>No fields defined for this activity.</Text>
+                  <Pressable style={styles.mockBtn} onPress={() => setStep('DETAILS')}>
+                    <Text style={styles.mockBtnText}>Continue</Text>
+                  </Pressable>
+                </View>
+              )}
+            </ScrollView>
+          </KeyboardAvoidingView>
+        )}
+        {step === 'DETAILS' && (
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.stepContainer}>
+            {renderHeader('Title & Notes')}
+            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+              <View style={styles.fieldWrapper}>
+                <Input
+                  label="Title (Optional)"
+                  placeholder="e.g. Morning Workout"
+                  value={title}
+                  onChangeText={setTitle}
+                  maxLength={80}
+                  showCharCount
+                />
+              </View>
+              <View style={styles.fieldWrapper}>
+                <Input
+                  label="Description (Optional)"
+                  placeholder="How did it go? Share some thoughts..."
+                  value={description}
+                  onChangeText={setDescription}
+                  maxLength={500}
+                  multiline
+                  showCharCount
+                  style={{ minHeight: 120, textAlignVertical: 'top' }}
+                />
+              </View>
+              <View style={styles.chipsRow}>
+                {['Felt heavy today 🥵', 'Crushed it! 💪', 'New PR 🏆'].map(chip => (
+                  <Pressable key={chip} style={styles.suggestionChip} onPress={() => setDescription(prev => (prev ? prev + ' ' + chip : chip))}>
+                    <Text variant="caption" color={COLORS.inkPrimary}>{chip}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <View style={{ marginTop: 24 }}>
+                <Button label="Review Submission" onPress={() => setStep('CONFIRM')} fullWidth />
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
         )}
         {step === 'CONFIRM' && (
           <View style={styles.stepContainer}>
             {renderHeader('Confirm')}
-            <View style={styles.content}>
-              <Text style={styles.placeholderText}>Preview Card will go here.</Text>
-              <Pressable style={styles.mockBtn} onPress={() => setStep('SUCCESS')}>
-                <Text style={styles.mockBtnText}>Submit StreakPact 🚀</Text>
-              </Pressable>
-            </View>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+              <PreviewCard 
+                activityName={selectedActivity?.name || 'Activity'}
+                activityIcon={selectedActivity?.icon || '⚡'}
+                activityColor={selectedActivity?.color || COLORS.brandPrimary}
+                photoUri={photoUri}
+                title={title}
+                description={description}
+                formData={formData}
+              />
+              <View style={{ marginTop: 32 }}>
+                <Button 
+                  label={isSubmitting ? 'Submitting...' : 'Submit StreakPact 🚀'} 
+                  onPress={() => {
+                    setIsSubmitting(true);
+                    setTimeout(() => {
+                      setIsSubmitting(false);
+                      setStep('SUCCESS');
+                    }, 1000);
+                  }}
+                  disabled={isSubmitting}
+                  fullWidth 
+                />
+              </View>
+            </ScrollView>
           </View>
         )}
         {step === 'SUCCESS' && (
@@ -188,25 +268,29 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.surfaceMain },
   container: { flex: 1 },
   stepContainer: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACING.lg, paddingTop: Platform.OS === 'android' ? SPACING.xl : SPACING.md, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.hairline },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACE.lg, paddingTop: Platform.OS === 'android' ? SPACE.xl : SPACE.md, paddingBottom: SPACE.md, borderBottomWidth: 1, borderBottomColor: COLORS.hairline },
   headerBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { ...TYPOGRAPHY.h3, color: COLORS.inkDisplay },
-  content: { flex: 1, padding: SPACING.xl, justifyContent: 'center', alignItems: 'center' },
-  centerContent: { justifyContent: 'center', alignItems: 'center', padding: SPACING.xl },
-  placeholderText: { ...TYPOGRAPHY.body, color: COLORS.inkTertiary, marginBottom: SPACING.xl, textAlign: 'center' },
-  mockBtn: { backgroundColor: COLORS.accent, paddingHorizontal: SPACING.xl, paddingVertical: SPACING.md, borderRadius: RADIUS.round, ...SHADOWS.raised },
+  content: { flex: 1, padding: SPACE.xl, justifyContent: 'center', alignItems: 'center' },
+  scrollContent: { padding: SPACE.xl, paddingBottom: 100 },
+  fieldWrapper: { marginBottom: 24 },
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  suggestionChip: { backgroundColor: COLORS.surfaceElevated, paddingHorizontal: 12, paddingVertical: 8, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.hairline },
+  centerContent: { justifyContent: 'center', alignItems: 'center', padding: SPACE.xl },
+  placeholderText: { ...TYPOGRAPHY.body, color: COLORS.inkTertiary, marginBottom: SPACE.xl, textAlign: 'center' },
+  mockBtn: { backgroundColor: COLORS.accent, paddingHorizontal: SPACE.xl, paddingVertical: SPACE.md, borderRadius: RADIUS.round, ...SHADOWS.raised },
   mockBtnText: { ...TYPOGRAPHY.button, color: COLORS.surfaceMain },
-  primaryBtn: { backgroundColor: COLORS.accent, paddingHorizontal: SPACING.xl, paddingVertical: SPACING.md, borderRadius: RADIUS.round, ...SHADOWS.raised, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1, marginHorizontal: SPACING.xs },
+  primaryBtn: { backgroundColor: COLORS.accent, paddingHorizontal: SPACE.xl, paddingVertical: SPACE.md, borderRadius: RADIUS.round, ...SHADOWS.raised, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1, marginHorizontal: SPACE.xs },
   primaryBtnText: { ...TYPOGRAPHY.button, color: COLORS.surfaceMain },
-  secondaryBtn: { backgroundColor: COLORS.surfaceElevated, paddingHorizontal: SPACING.xl, paddingVertical: SPACING.md, borderRadius: RADIUS.round, borderWidth: 1, borderColor: COLORS.hairlineStrong, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1, marginHorizontal: SPACING.xs },
+  secondaryBtn: { backgroundColor: COLORS.surfaceElevated, paddingHorizontal: SPACE.xl, paddingVertical: SPACE.md, borderRadius: RADIUS.round, borderWidth: 1, borderColor: COLORS.hairlineStrong, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1, marginHorizontal: SPACE.xs },
   secondaryBtnText: { ...TYPOGRAPHY.button, color: COLORS.inkBase },
-  cameraButtons: { flexDirection: 'row', width: '100%', marginBottom: SPACING.xl, paddingHorizontal: SPACING.md },
-  skipBtn: { padding: SPACING.md },
+  cameraButtons: { flexDirection: 'row', width: '100%', marginBottom: SPACE.xl, paddingHorizontal: SPACE.md },
+  skipBtn: { padding: SPACE.md },
   skipBtnText: { ...TYPOGRAPHY.body, color: COLORS.inkTertiary, textDecorationLine: 'underline' },
   previewContainer: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' },
-  previewImage: { width: '100%', aspectRatio: 4/5, borderRadius: RADIUS.lg, marginBottom: SPACING.xl, ...SHADOWS.card },
-  previewActions: { flexDirection: 'row', width: '100%', paddingHorizontal: SPACING.md },
-  successEmoji: { fontSize: 72, marginBottom: SPACING.md },
-  successTitle: { ...TYPOGRAPHY.h1, color: COLORS.inkDisplay, marginBottom: SPACING.xs },
-  successSubtitle: { ...TYPOGRAPHY.h2, color: COLORS.accent, marginBottom: SPACING.xxl },
+  previewImage: { width: '100%', aspectRatio: 4/5, borderRadius: RADIUS.lg, marginBottom: SPACE.xl, ...SHADOWS.card },
+  previewActions: { flexDirection: 'row', width: '100%', paddingHorizontal: SPACE.md },
+  successEmoji: { fontSize: 72, marginBottom: SPACE.md },
+  successTitle: { ...TYPOGRAPHY.h1, color: COLORS.inkDisplay, marginBottom: SPACE.xs },
+  successSubtitle: { ...TYPOGRAPHY.h2, color: COLORS.accent, marginBottom: SPACE.xxl },
 });

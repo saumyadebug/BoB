@@ -62,13 +62,13 @@ export function Chip({ label, icon, isSelected = false, onPress, variant = 'defa
       accessibilityRole="button"
       accessibilityState={{ selected }}
     >
-      {icon && (
+      {icon ? (
         <Icon
           name={icon}
           size={15}
           color={selected ? COLORS.inkInverse : COLORS.inkPrimary}
         />
-      )}
+      ) : null}
       <Text
         variant="label"
         color={selected ? COLORS.inkInverse : COLORS.inkPrimary}

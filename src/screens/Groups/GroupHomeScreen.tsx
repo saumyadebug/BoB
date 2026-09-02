@@ -1,18 +1,19 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Pressable, RefreshControl, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Text, Button, Avatar, Card, Badge, Icon, IconName, BottomSheet, Input } from '@/components/ui';
-import { COLORS, RADIUS, SHADOWS } from '@/constants/theme';
+import { Text, Button, Avatar, Card, Badge, Icon, IconName, BottomSheet, Input, StreakSummaryBar, CalendarGrid } from '@/components/ui';
+import { COLORS, RADIUS, SHADOWS, SPACE } from '@/constants/theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ActivityCard, MemberActivityStatus } from '@/components/groups/ActivityCard';
 import { Activity, GroupMember } from '@/types';
 import * as Haptics from 'expo-haptics';
 import { VoltPeek } from '@/components/brand/VoltMark';
 
-type Tab = 'feed' | 'activities' | 'members' | 'leaderboard';
+type Tab = 'feed' | 'calendar' | 'activities' | 'members' | 'leaderboard';
 
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'feed', label: 'Feed', icon: 'house' },
+  { id: 'calendar', label: 'Calendar', icon: 'calendar' },
   { id: 'activities', label: 'Activities', icon: 'target' },
   { id: 'members', label: 'Members', icon: 'users' },
   { id: 'leaderboard', label: 'Ranks', icon: 'trophy' },
@@ -101,11 +102,11 @@ export default function GroupHomeScreen() {
               <Text variant="displaySm" color={COLORS.inkDisplay}>{group.name}</Text>
             </View>
           </View>
-          {group.description && (
+          {group.description ? (
             <Text variant="body" color={COLORS.inkSecondary} style={styles.description}>
               {group.description}
             </Text>
-          )}
+          ) : null}
         </View>
 
         {/* Stat strip */}
@@ -133,31 +134,46 @@ export default function GroupHomeScreen() {
           />
         </View>
 
+        {/* Streak Summary */}
+        <StreakSummaryBar 
+          members={group.members.map(m => ({
+            id: m.userId,
+            name: m.user?.displayName || 'User',
+            avatarUrl: m.user?.avatarUrl,
+            streak: m.user?.longestStreak || 0,
+            flameColor: COLORS.accent,
+          }))} 
+        />
+
         {/* Tabs */}
         <View style={styles.tabsRow}>
-          {TABS.map(t => {
-            const active = tab === t.id;
-            return (
-              <Pressable
-                key={t.id}
-                onPress={() => setTab(t.id)}
-                style={[styles.tab, active ? styles.tabActive : null]}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-              >
-                <Icon name={t.icon} size={16} color={active ? COLORS.inkDisplay : COLORS.inkTertiary} bold={active} />
-                <Text variant="label" color={active ? COLORS.inkDisplay : COLORS.inkTertiary}>
-                  {t.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {TABS.map(t => {
+              const active = tab === t.id;
+              return (
+                <Pressable
+                  key={t.id}
+                  onPress={() => setTab(t.id)}
+                  style={[styles.tab, active ? styles.tabActive : null]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Icon name={t.icon} size={16} color={active ? COLORS.inkDisplay : COLORS.inkTertiary} bold={active} />
+                  <Text variant="label" color={active ? COLORS.inkDisplay : COLORS.inkTertiary}>
+                    {t.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
+
 
         {/* Tab content */}
         {tab === 'feed' && <FeedTab group={group} onInvite={() => setInviteSheet(true)} />}
+        {tab === 'calendar' && <CalendarTab group={group} />}
         {tab === 'activities' && <ActivitiesTab group={group} navigation={navigation} />}
-        {tab === 'members' && <MembersTab group={group} />}
+        {tab === 'members' && <MembersTab group={group} navigation={navigation} />}
         {tab === 'leaderboard' && <LeaderboardTab group={group} />}
       </ScrollView>
 
@@ -203,9 +219,30 @@ function StatTile({ label, value, unit, icon, accent }: { label: string; value: 
       <Icon name={icon} size={18} color={accent ? COLORS.accent : COLORS.inkSecondary} />
       <View style={styles.statValueRow}>
         <Text variant="numericLg" color={COLORS.inkDisplay}>{value}</Text>
-        {unit && <Text variant="body" color={COLORS.inkSecondary}>{unit}</Text>}
+        {unit ? <Text variant="body" color={COLORS.inkSecondary}>{unit}</Text> : null}
       </View>
       <Text variant="caption" color={COLORS.inkTertiary}>{label}</Text>
+    </View>
+  );
+}
+
+function CalendarTab({ group }: { group: typeof MOCK_GROUP }) {
+  const d = new Date();
+  const dateStr1 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const d2 = new Date(); d2.setDate(d.getDate() - 1);
+  const dateStr2 = `${d2.getFullYear()}-${String(d2.getMonth() + 1).padStart(2, '0')}-${String(d2.getDate()).padStart(2, '0')}`;
+  const d3 = new Date(); d3.setDate(d.getDate() - 2);
+  const dateStr3 = `${d3.getFullYear()}-${String(d3.getMonth() + 1).padStart(2, '0')}-${String(d3.getDate()).padStart(2, '0')}`;
+  
+  const mockCalendarData = {
+    [dateStr1]: [COLORS.accent, COLORS.positive, COLORS.warning],
+    [dateStr2]: [COLORS.accent, COLORS.positive],
+    [dateStr3]: [COLORS.accent, COLORS.positive, COLORS.warning, COLORS.brandPrimaryDark],
+  };
+
+  return (
+    <View style={styles.tabContent}>
+      <CalendarGrid data={mockCalendarData} />
     </View>
   );
 }
@@ -275,34 +312,39 @@ function ActivitiesTab({ group, navigation }: { group: typeof MOCK_GROUP; naviga
   );
 }
 
-function MembersTab({ group }: { group: typeof MOCK_GROUP }) {
+function MembersTab({ group, navigation }: { group: typeof MOCK_GROUP; navigation: any }) {
   const sorted = [...group.members].sort((a, b) => (b.user?.xp || 0) - (a.user?.xp || 0));
   return (
     <View style={styles.tabContent}>
       {sorted.map((m, i) => (
-        <Card key={m.userId} variant="flat" padding="lg" style={styles.memberRow}>
-          <Text variant="numericMd" color={COLORS.inkTertiary} style={styles.memberRank}>
-            {String(i + 1).padStart(2, '0')}
-          </Text>
-          <Avatar src={m.user?.avatarUrl} name={m.user?.displayName} size="md" />
-          <View style={{ flex: 1 }}>
-            <View style={styles.memberNameRow}>
-              <Text variant="headingSm" color={COLORS.inkDisplay} numberOfLines={1}>
-                {m.user?.displayName}
+        <Pressable
+          key={m.userId}
+          onPress={() => navigation.navigate('Comparative', { member1Id: 'u1', member2Id: m.userId })}
+        >
+          <Card variant="flat" padding="lg" style={styles.memberRow}>
+            <Text variant="numericMd" color={COLORS.inkTertiary} style={styles.memberRank}>
+              {String(i + 1).padStart(2, '0')}
+            </Text>
+            <Avatar src={m.user?.avatarUrl} name={m.user?.displayName} size="md" />
+            <View style={{ flex: 1 }}>
+              <View style={styles.memberNameRow}>
+                <Text variant="headingSm" color={COLORS.inkDisplay} numberOfLines={1}>
+                  {m.user?.displayName}
+                </Text>
+                {m.role === 'admin' && <Badge label="Admin" variant="neutral" />}
+              </View>
+              <Text variant="caption" color={COLORS.inkSecondary}>
+                @{m.user?.username} · Level {m.user?.level}
               </Text>
-              {m.role === 'admin' && <Badge label="Admin" variant="neutral" />}
             </View>
-            <Text variant="caption" color={COLORS.inkSecondary}>
-              @{m.user?.username} · Level {m.user?.level}
-            </Text>
-          </View>
-          <View style={styles.memberStats}>
-            <Text variant="numericMd" color={COLORS.inkDisplay}>
-              {m.user?.xp?.toLocaleString()}
-            </Text>
-            <Text variant="caption" color={COLORS.inkTertiary}>XP</Text>
-          </View>
-        </Card>
+            <View style={styles.memberStats}>
+              <Text variant="numericMd" color={COLORS.inkDisplay}>
+                {m.user?.xp?.toLocaleString()}
+              </Text>
+              <Text variant="caption" color={COLORS.inkTertiary}>XP</Text>
+            </View>
+          </Card>
+        </Pressable>
       ))}
     </View>
   );

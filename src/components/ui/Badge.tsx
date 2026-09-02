@@ -35,9 +35,9 @@ export function Badge({
         style,
       ]}
     >
-      {icon && (
+      {icon ? (
         <Icon name={icon} size={iconSize} color={fg} />
-      )}
+      ) : null}
       {displayLabel ? (
         <Text
           variant={isSm ? 'caption' : 'label'}

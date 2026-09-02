@@ -283,6 +283,7 @@ export type RootStackParamList = {
   CreateActivity: { groupId: string };
   ActivityDetail: { activity?: Activity; groupId?: string };
   SubmissionFlow: { activityId?: string; groupId?: string } | undefined;
+  Comparative: { member1Id: string; member2Id: string };
 };
 
 declare global {

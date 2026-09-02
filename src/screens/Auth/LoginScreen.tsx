@@ -151,11 +151,11 @@ export default function LoginScreen({ navigation }: any) {
               )}
             />
 
-            {authError && (
+            {authError ? (
               <Text variant="bodySm" color={COLORS.danger} style={styles.errorText}>
                 {authError}
               </Text>
-            )}
+            ) : null}
 
             <Button
               label={isLoading ? 'Signing in…' : 'Sign in'}
