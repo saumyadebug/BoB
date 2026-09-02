@@ -1,282 +1,255 @@
-import { Dimensions } from 'react-native';
-
 /**
- * StreakPact Design System
+ * StreakPact Design System — Dark Cosmos
  *
- * Direction: "Premium consumer / editorial"
- * - Warm off-white body (not cream/sand AI slop)
- * - Single saturated accent (Volt Orange)
- * - Space Grotesk display, Inter body, JetBrains Mono numerics
- * - Real depth via subtle shadows + 1px hairlines (not 2010 neumorphism)
- * - One radius scale, locked.
- * - One motion language: ease-out-quint for entry, spring-ui for press.
+ * Reference aesthetic: deep-space, near-black interface with layered glass
+ * panels, muted blue-grey accents, and precise typographic hierarchy. The
+ * tone is elite, focused, and ambient — like a control room.
  *
- * Light mode by default. Dark mode supported via useColorScheme hook.
+ * Spec source: Required/design.md
+ *
+ * Core rules:
+ *  - Depth is conveyed through layered opacity + 1px border + (sparingly)
+ *    backdrop-filter blur — never box-shadow as a primary depth signal.
+ *  - Two accent colors only: --accent-blue (interactive) and --accent-red
+ *    (live/alert only — never decorative).
+ *  - Sentence case everywhere. No ALL CAPS as a style choice.
+ *  - Left-aligned by default. Center only for full-bleed hero moments.
+ *  - Monospace for data/IDs/timers/numerics. Inter for everything else.
  */
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+// ─── Color Palette ────────────────────────────────────────────────────────────
 
-// ─── COLOR ────────────────────────────────────────────────────────────────────
+const _palette = {
+  // Background
+  bgBase:    '#050608',   // OLED pitch black canvas
+  bgPanel:   '#101216',   // smoked glass panels, cards
+  bgSurface: '#16181F',   // inner containers, input fields, squircle cells
+  bgOverlay: 'rgba(255,255,255,0.05)', // subtle glass tint
+  bgGlass:   'rgba(18, 20, 26, 0.85)', // translucent floating HUDs
+  bgPill:    'rgba(255,255,255,0.07)', // capsule button background
 
-export const lightColors = {
-  // Surfaces
-  surfaceBase: '#F5F4F0',       // warm neutral bone — the page
-  surfaceElevated: '#FFFFFF',   // cards, sheets
-  surfaceSunken: '#EAE8E2',     // pressed, recessed
-  surfaceOverlay: 'rgba(14, 14, 16, 0.55)', // modal backdrop
+  // Border
+  border:        'rgba(255,255,255,0.08)',
+  borderStrong:  'rgba(255,255,255,0.16)',
+  borderPill:    'rgba(255,255,255,0.12)',
 
-  // Ink
-  inkDisplay: '#0E0E10',        // headlines, high contrast
-  inkPrimary: '#1F1F22',        // body
-  inkSecondary: '#6B6B70',      // secondary body (≥4.5:1 on surfaceBase)
-  inkTertiary: '#9A9A9F',       // placeholder, disabled
-  inkInverse: '#FAFAFA',        // on dark / accent fills
+  // Accent
+  accentBlue:     '#3A82F7',  // primary interactive, links, selected
+  accentBlueGlow: 'rgba(58, 130, 247, 0.25)',
+  accentRed:      '#FF334B',  // electric signal red: live badges, active TUE, timers
+  accentRedGlow:  'rgba(255, 51, 75, 0.30)',
+  accentMuted:    '#232834',  // secondary highlight, hover bg
 
-  // Accent (single saturated)
-  accent: '#FF5B1F',            // Volt Orange
-  accentHover: '#FF7A47',
-  accentPressed: '#D64410',
-  accentTint: 'rgba(255, 91, 31, 0.10)',
-  accentTintStrong: 'rgba(255, 91, 31, 0.18)',
+  // Text
+  textPrimary:   '#FFFFFF',
+  textSecondary: '#8E95A2',
+  textTertiary:  '#525866',
+  textMuted:     '#3D424D',
 
-  // Semantic
-  positive: '#2E9D6A',
-  positiveTint: 'rgba(46, 157, 106, 0.12)',
-  danger: '#DC2626',
-  dangerTint: 'rgba(220, 38, 38, 0.10)',
-  warning: '#C97A0B',
-  warningTint: 'rgba(201, 122, 11, 0.12)',
+  // Tag / pill
+  tagBg:     'rgba(255,255,255,0.06)',
+  tagBorder: 'rgba(255,255,255,0.10)',
 
-  // Lines
-  hairline: 'rgba(14, 14, 16, 0.08)',
-  hairlineStrong: 'rgba(14, 14, 16, 0.14)',
-
-  // Special — the LCD streak display
-  screenInk: '#FF7A47',
-  screenBg: '#0E0E10',
+  // Semantic helpers
+  success:        '#2E9D6A',
+  positive:       '#2E9D6A',   // legacy alias
+  warning:        '#F59E0B',
+  danger:         '#FF334B',
+  hairline:       'rgba(255,255,255,0.08)',
+  hairlineStrong: 'rgba(255,255,255,0.16)',
 };
 
-export const darkColors = {
-  surfaceBase: '#0E0E10',       // OLED near-black
-  surfaceElevated: '#1A1A1E',   // cards
-  surfaceSunken: '#070708',     // pressed
-  surfaceOverlay: 'rgba(0, 0, 0, 0.7)',
-
-  inkDisplay: '#FAFAFA',
-  inkPrimary: '#E8E8EA',
-  inkSecondary: '#9A9A9F',
-  inkTertiary: '#5C5C62',
-  inkInverse: '#0E0E10',
-
-  accent: '#FF6B2C',            // slightly brighter for OLED
-  accentHover: '#FF8550',
-  accentPressed: '#E04E0E',
-  accentTint: 'rgba(255, 107, 44, 0.14)',
-  accentTintStrong: 'rgba(255, 107, 44, 0.22)',
-
-  positive: '#34D399',
-  positiveTint: 'rgba(52, 211, 153, 0.14)',
-  danger: '#F87171',
-  dangerTint: 'rgba(248, 113, 113, 0.14)',
-  warning: '#FBBF24',
-  warningTint: 'rgba(251, 191, 36, 0.14)',
-
-  hairline: 'rgba(255, 255, 255, 0.08)',
-  hairlineStrong: 'rgba(255, 255, 255, 0.14)',
-
-  screenInk: '#FF8550',
-  screenBg: '#000000',
-};
-
-// Default to light. Consumers can swap via useColors() hook.
+/**
+ * `COLORS` is the canonical color token set for the dark cosmos theme.
+ *
+ * It also exposes the legacy names from the previous "tactile hardware"
+ * theme as aliases, so existing screens that reference `inkDisplay`,
+ * `surfaceBase`, `accent`, `accentTint`, etc. keep compiling during the
+ * migration. **New code should use the new names** (bgBase, accentBlue,
+ * textPrimary, etc.) — the legacy names will be removed in Phase 5.
+ */
 export const COLORS = {
-  ...lightColors,
-  // Backward-compat aliases for old theme keys used by un-migrated screens.
-  brandPrimary: '#FF5B1F',
-  brandPrimaryDark: '#D64410',
-  surfaceDark: lightColors.surfaceSunken,
-  textPrimary: lightColors.inkPrimary,
-  textSecondary: lightColors.inkSecondary,
-  textDisplay: lightColors.screenInk,
-  shadowDark: 'rgba(14, 14, 16, 0.20)',
-  shadowLight: '#FFFFFF',
-  success: lightColors.positive,
-  danger: lightColors.danger,
+  ..._palette,
+  // Legacy aliases (to be removed once every screen is migrated)
+  surfaceBase: _palette.bgBase,
+  surfaceElevated: _palette.bgPanel,
+  surfaceSunken: _palette.bgSurface,
+  surfaceOverlay: _palette.bgOverlay,
+  inkDisplay: _palette.textPrimary,
+  inkPrimary: _palette.textPrimary,
+  inkSecondary: _palette.textSecondary,
+  inkTertiary: _palette.textTertiary,
+  inkInverse: _palette.bgBase,
+  accent: _palette.accentBlue,
+  accentTint: _palette.bgOverlay,
+  positiveTint: 'rgba(46, 157, 106, 0.12)',   // legacy semantic tint
+  dangerTint: 'rgba(255, 59, 48, 0.12)',
+  warningTint: 'rgba(245, 158, 11, 0.12)',
+  accentTintStrong: _palette.accentMuted,
+  accentHover: _palette.accentBlue,
+  brandPrimary: _palette.accentBlue,   // legacy alias
+  surfaceDark: _palette.bgBase,          // legacy alias
+  textDisplay: _palette.textPrimary,      // legacy alias
+  accentPrimaryDark: _palette.accentMuted,
+  successStrong: _palette.success,
+  shadowDark: 'rgba(0,0,0,0.4)',
+  shadowLight: 'rgba(0,0,0,0.2)',
+  // Kept for cards that read this in their own padding
+  padding: 20,
 };
 
-// ─── RADIUS (one scale, locked) ───────────────────────────────────────────────
+// ─── Radius (4 sizes, no extras) ───────────────────────────────────────────
 
 export const RADIUS = {
-  xs: 6,
-  sm: 10,
-  md: 14,
-  lg: 20,
-  xl: 28,
-  pill: 999,
+  xs:       4,
+  sm:       6,
+  md:       12,
+  lg:       18,
+  squircle: 16,
+  xl:       24,
+  xxl:      32,
+  full:     999,
+  pill:     999,
+  radiusButton: 8,
+  radiusCard: 20,
+  radiusScreen: 24,
+  radiusPill: 999,
 };
 
-// ─── SPACING (4-pt baseline) ──────────────────────────────────────────────────
+// ─── Spacing (8px grid, tighter than the previous system) ────────────────
 
 export const SPACE = {
-  xxs: 2,
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  xxl: 32,
-  xxxl: 48,
-  huge: 64,
+  xs:   4,
+  sm:   8,
+  md:   14,
+  lg:   20,
+  xl:   28,
+  xxl:  40,
+  xxs:  2,
+  sm2:  8,
+  md2:  14,
+  lg2:  20,
+  base: 4,
 };
 
-// ─── TYPOGRAPHY ───────────────────────────────────────────────────────────────
+// ─── Typography (Inter for UI, JetBrains Mono for numerics) ──────────────
 
-/**
- * Type roles (do not use point sizes directly in screens).
- * Always compose: `Text variant="display">`
- */
 export const TYPOGRAPHY = {
-  // Display — Space Grotesk
+  // Display — hero stats, big session timer (mono, bold)
   displayLg: {
-    fontFamily: 'SpaceGrotesk-Bold',
-    fontSize: 44,
-    lineHeight: 48,
+    fontFamily: 'JetBrainsMono-Bold',
+    fontSize: 64,
+    lineHeight: 68,
     letterSpacing: -1.5,
-    color: COLORS.inkDisplay,
+    color: COLORS.textPrimary,
   },
   displayMd: {
     fontFamily: 'SpaceGrotesk-Bold',
-    fontSize: 34,
-    lineHeight: 38,
-    letterSpacing: -1.0,
-    color: COLORS.inkDisplay,
+    fontSize: 32,
+    lineHeight: 36,
+    letterSpacing: -0.5,
+    color: COLORS.textPrimary,
   },
   displaySm: {
     fontFamily: 'SpaceGrotesk-SemiBold',
-    fontSize: 28,
-    lineHeight: 32,
-    letterSpacing: -0.5,
-    color: COLORS.inkDisplay,
+    fontSize: 24,
+    lineHeight: 28,
+    letterSpacing: -0.3,
+    color: COLORS.textPrimary,
   },
 
-  // Headings — Space Grotesk
-  headingLg: {
-    fontFamily: 'SpaceGrotesk-SemiBold',
+  // Headline — card title, screen title
+  headline: {
+    fontFamily: 'Inter-SemiBold',
     fontSize: 22,
     lineHeight: 28,
     letterSpacing: -0.3,
-    color: COLORS.inkDisplay,
+    color: COLORS.textPrimary,
   },
-  headingMd: {
-    fontFamily: 'SpaceGrotesk-SemiBold',
+  headlineSm: {
+    fontFamily: 'Inter-SemiBold',
     fontSize: 18,
     lineHeight: 24,
     letterSpacing: -0.2,
-    color: COLORS.inkDisplay,
-  },
-  headingSm: {
-    fontFamily: 'SpaceGrotesk-Medium',
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: -0.1,
-    color: COLORS.inkDisplay,
+    color: COLORS.textPrimary,
   },
 
-  // Body — Inter
-  body: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 16,
-    lineHeight: 24,
-    color: COLORS.inkPrimary,
-  },
-  bodyMedium: {
+  // Subheading — section labels
+  subheading: {
     fontFamily: 'Inter-Medium',
     fontSize: 16,
-    lineHeight: 24,
-    color: COLORS.inkPrimary,
+    lineHeight: 22,
+    color: COLORS.textPrimary,
+  },
+
+  // Body — descriptions, content text (13–14px per spec)
+  body: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    color: COLORS.textPrimary,
   },
   bodySm: {
     fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    lineHeight: 20,
-    color: COLORS.inkPrimary,
+    fontSize: 13,
+    lineHeight: 18,
+    color: COLORS.textSecondary,
   },
 
-  // Labels
+  // Label / Meta — tags, status chips, timestamps (11–12px)
   label: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 14,
-    lineHeight: 18,
-    letterSpacing: 0,
-    color: COLORS.inkPrimary,
-  },
-  caption: {
     fontFamily: 'Inter-Medium',
     fontSize: 12,
     lineHeight: 16,
-    letterSpacing: 0.1,
-    color: COLORS.inkSecondary,
+    letterSpacing: 0.3,
+    color: COLORS.textSecondary,
   },
-
-  // Eyebrow / overline — Inter all-caps
-  eyebrow: {
-    fontFamily: 'Inter-SemiBold',
+  caption: {
+    fontFamily: 'Inter-Medium',
     fontSize: 11,
     lineHeight: 14,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase' as const,
-    color: COLORS.inkSecondary,
+    letterSpacing: 0.3,
+    color: COLORS.textTertiary,
   },
 
-  // Numerics — JetBrains Mono (streaks, XP, counters)
-  numericXl: {
-    fontFamily: 'JetBrainsMono-Bold',
-    fontSize: 56,
-    lineHeight: 60,
-    letterSpacing: -2,
-    color: COLORS.inkDisplay,
-  },
-  numericLg: {
+  // Mono Data — counters, IDs, timer values
+  monoLg: {
     fontFamily: 'JetBrainsMono-Bold',
     fontSize: 32,
     lineHeight: 36,
     letterSpacing: -0.5,
-    color: COLORS.inkDisplay,
+    color: COLORS.textPrimary,
   },
-  numericMd: {
+  monoMd: {
     fontFamily: 'JetBrainsMono-Bold',
     fontSize: 18,
     lineHeight: 22,
-    letterSpacing: 0,
-    color: COLORS.inkDisplay,
+    color: COLORS.textPrimary,
   },
-  numericSm: {
+  monoSm: {
     fontFamily: 'JetBrainsMono-Medium',
     fontSize: 13,
     lineHeight: 16,
     letterSpacing: 0.2,
-    color: COLORS.inkPrimary,
+    color: COLORS.textSecondary,
   },
 
-  // LCD digital display (streak counter)
-  digitalDisplay: {
-    fontFamily: 'JetBrainsMono-Bold',
-    fontSize: 22,
-    lineHeight: 26,
-    letterSpacing: 2,
-    color: lightColors.screenInk,
-  },
+  // Legacy variants — kept so the existing Text component still works.
+  // New code should prefer headline/body/label/mono above.
+  headingLg: { fontFamily: 'Inter-SemiBold', fontSize: 22, lineHeight: 28, letterSpacing: -0.3, color: COLORS.textPrimary },
+  headingMd: { fontFamily: 'Inter-SemiBold', fontSize: 18, lineHeight: 24, letterSpacing: -0.2, color: COLORS.textPrimary },
+  headingSm: { fontFamily: 'Inter-Medium', fontSize: 15, lineHeight: 20, letterSpacing: -0.1, color: COLORS.textPrimary },
+  bodyMedium: { fontFamily: 'Inter-Medium', fontSize: 14, lineHeight: 20, color: COLORS.textPrimary },
+  eyebrow: { fontFamily: 'Inter-SemiBold', fontSize: 11, lineHeight: 14, letterSpacing: 1.4, textTransform: 'uppercase' as const, color: COLORS.textSecondary },
+  numericXl: { fontFamily: 'JetBrainsMono-Bold', fontSize: 56, lineHeight: 60, letterSpacing: -2, color: COLORS.textPrimary },
+  numericLg: { fontFamily: 'JetBrainsMono-Bold', fontSize: 32, lineHeight: 36, letterSpacing: -0.5, color: COLORS.textPrimary },
+  numericMd: { fontFamily: 'JetBrainsMono-Bold', fontSize: 18, lineHeight: 22, color: COLORS.textPrimary },
+  numericSm: { fontFamily: 'JetBrainsMono-Medium', fontSize: 13, lineHeight: 16, letterSpacing: 0.2, color: COLORS.textSecondary },
+  digitalDisplay: { fontFamily: 'JetBrainsMono-Bold', fontSize: 22, lineHeight: 26, letterSpacing: 2, color: COLORS.accentRed },
 };
 
-// ─── SHADOWS ──────────────────────────────────────────────────────────────────
+// ─── Elevation (NO box-shadow — only tints + borders) ────────────────────
 
-/**
- * Real depth via dual shadows:
- * - a tight tinted offset (not black) to anchor the element
- * - a soft ambient blur to create the "lifted off the page" feel
- *
- * Avoids 2010 neumorphism: no inset double-borders, no harsh gray.
- */
 export const SHADOWS = {
   none: {
     shadowColor: 'transparent',
@@ -285,45 +258,57 @@ export const SHADOWS = {
     shadowRadius: 0,
     elevation: 0,
   },
-  // Cards — subtle lift
+  // Kept for compatibility with code that still passes shadow* style props,
+  // but they're all no-ops visually — depth is conveyed by borders/tints.
   card: {
-    shadowColor: '#1F1F22',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   cardHover: {
-    shadowColor: '#1F1F22',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
-  // Sheets, modals, FAB
   raised: {
-    shadowColor: '#1F1F22',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 8,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   raisedLg: {
-    shadowColor: '#1F1F22',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.12,
-    shadowRadius: 32,
-    elevation: 16,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
-  // Primary CTA — accent-tinted shadow for that "this is the one" pop
   cta: {
-    shadowColor: '#FF5B1F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.20,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
-  // Hairline divider
+  fabDefault: {
+    shadowColor: COLORS.accentBlue,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.30,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  fabPressed: {
+    shadowColor: COLORS.accentBlue,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 2,
+  },
   divider: {
     shadowColor: 'transparent',
     shadowOffset: { width: 0, height: 0 },
@@ -331,92 +316,64 @@ export const SHADOWS = {
     shadowRadius: 0,
     elevation: 0,
   },
-  // Legacy aliases for un-migrated screens
+  // Legacy aliases
   softElevation: {
-    shadowColor: '#1F1F22',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   mediumElevation: {
-    shadowColor: '#1F1F22',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   highElevation: {
-    shadowColor: '#1F1F22',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  fabDefault: {
-    shadowColor: '#FF5B1F',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.30,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  fabPressed: {
-    shadowColor: '#FF5B1F',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
 };
 
-// ─── MOTION ───────────────────────────────────────────────────────────────────
+// ─── Motion (150ms / 220ms — short, no looping) ──────────────────────────
 
-/**
- * Cubic-bezier curves (Emil Kowalski's framework applied).
- * Strong custom easings — default linear/ease feel weak.
- */
 export const EASE = {
-  // Element entering screen — fast initial movement, gentle settle
   out: 'cubic-bezier(0.16, 1, 0.3, 1)',
-  outQuart: 'cubic-bezier(0.25, 1, 0.5, 1)',
-  // Element moving on screen — natural acceleration/deceleration
   inOut: 'cubic-bezier(0.65, 0, 0.35, 1)',
-  // iOS-like drawer curve
-  drawer: 'cubic-bezier(0.32, 0.72, 0, 1)',
-  // Spring config for Reanimated Animated.spring calls
-  spring: { damping: 18, stiffness: 220, mass: 0.8, useNativeDriver: true },
-  springBouncy: { damping: 12, stiffness: 180, mass: 0.7, useNativeDriver: true },
-  springSoft: { damping: 22, stiffness: 180, mass: 1, useNativeDriver: true },
+  spring: { damping: 22, stiffness: 280, mass: 0.7, useNativeDriver: true },
+  springBouncy: { damping: 14, stiffness: 200, mass: 0.6, useNativeDriver: true },
+  springSoft: { damping: 24, stiffness: 180, mass: 0.9, useNativeDriver: true },
 };
 
-/** Duration budget (ms). UI animations <300ms. */
 export const DURATION = {
-  fast: 120,
-  base: 200,
-  slow: 320,
-  sheet: 380,
+  fast:   150,  // color/border state changes
+  base:   220,  // entrance animations
+  slow:   320,
+  sheet:  280,
 };
 
-// ─── SIZES (screen + tap targets) ─────────────────────────────────────────────
+// ─── Layout (screen size + tap targets) ────────────────────────────────────
 
 export const SIZES = {
-  screenWidth: SCREEN_WIDTH,
-  screenHeight: SCREEN_HEIGHT,
-  // iOS HIG / Material minimum
+  screenWidth: typeof window !== 'undefined' ? window.innerWidth : 390,
+  screenHeight: typeof window !== 'undefined' ? window.innerHeight : 844,
   tapTarget: 44,
-  // Legacy aliases
+  // Legacy aliases (older code references these)
   base: 4,
   padding: 24,
-  radiusCard: 28,
-  radiusButton: 14,
-  radiusScreen: 16,
+  radiusCard: 18,
+  radiusButton: 6,
+  radiusScreen: 18,
   radiusPill: 999,
 };
 
 export default {
   COLORS,
-  lightColors,
-  darkColors,
   RADIUS,
   SPACE,
   TYPOGRAPHY,

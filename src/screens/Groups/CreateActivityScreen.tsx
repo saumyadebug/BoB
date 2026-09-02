@@ -1,25 +1,37 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, Switch } from 'react-native';
-import { Text } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { COLORS, SIZES, SHADOWS } from '@/constants/theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text, Button, Icon, IconName } from '@/components/ui';
+import { COLORS, SIZES, SHADOWS, RADIUS, SPACE } from '@/constants/theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { PRESET_ACTIVITIES, ActivityTemplate } from '@/constants/activityTemplates';
-import { addActivity } from '@/services/groupService';
+import { useAddActivity } from '@/hooks';
+import { isAppError } from '@/services/errors';
+import { activityTemplateService, ActivityCategory } from '@/services/activityTemplateService';
+
+const ACTIVITY_ICONS: Record<string, IconName> = {
+  gym: 'barbell',
+  study: 'book',
+  read: 'book',
+  run: 'rocket',
+  meditate: 'leaf',
+  water: 'drop',
+  code: 'code',
+  sleep: 'moon',
+  music: 'music-notes',
+};
 
 export default function CreateActivityScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const groupId = route.params?.groupId;
-  
+
+  const addActivity = useAddActivity(groupId);
   const [step, setStep] = useState(1);
   const [selectedTemplate, setSelectedTemplate] = useState<ActivityTemplate | null>(null);
-  
-  // Config state
+
   const [frequency, setFrequency] = useState<'daily' | 'specific_days'>('daily');
   const [requirePhoto, setRequirePhoto] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSelectTemplate = (template: ActivityTemplate) => {
     setSelectedTemplate(template);
@@ -28,16 +40,11 @@ export default function CreateActivityScreen() {
     setStep(2);
   };
 
-  const handleCreate = async () => {
-    if (!selectedTemplate) return;
-    if (!groupId) {
-      Alert.alert('Error', 'No group ID provided');
-      return;
-    }
+  const handleCreate = () => {
+    if (!selectedTemplate || !groupId) return;
 
-    setIsSubmitting(true);
-    try {
-      await addActivity(groupId, {
+    addActivity.mutate(
+      {
         name: selectedTemplate.name,
         icon: selectedTemplate.icon,
         color: selectedTemplate.color,
@@ -46,49 +53,92 @@ export default function CreateActivityScreen() {
         frequency: frequency,
         frequencyDays: frequency === 'daily' ? [0, 1, 2, 3, 4, 5, 6] : [1, 3, 5],
         requirePhoto: requirePhoto,
-      });
-      navigation.goBack();
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to add activity');
-    } finally {
-      setIsSubmitting(false);
-    }
+      },
+      {
+        onSuccess: () => navigation.goBack(),
+        onError: (err) => {
+          Alert.alert(
+            'Error',
+            isAppError(err) ? err.message : (err as Error).message || 'Failed to add activity'
+          );
+        },
+      }
+    );
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => step > 1 ? setStep(step - 1) : navigation.goBack()} style={styles.backBtn}>
-          <Text variant="headingMd">← Back</Text>
+        <TouchableOpacity
+          onPress={() => (step > 1 ? setStep(step - 1) : navigation.goBack())}
+          style={styles.backBtn}
+          hitSlop={6}
+        >
+          <Icon name="arrow-left" size={20} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <Text variant="headingMd">{step === 1 ? 'Choose Activity' : 'Configure'}</Text>
-        <View style={{ width: 60 }} />
+        <Text variant="eyebrow" color={COLORS.textSecondary}>
+          {step === 1 ? 'Choose activity' : 'Configure'}
+        </Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         {step === 1 && (
           <View>
-            <Text variant="headingLg" style={styles.title}>What do you want to track?</Text>
-            <Text style={styles.subtitle}>Select a preset or create your own.</Text>
-            
-            <View style={styles.grid}>
-              {PRESET_ACTIVITIES.map(tpl => (
-                <TouchableOpacity 
-                  key={tpl.id} 
-                  style={styles.templateCard} 
-                  onPress={() => handleSelectTemplate(tpl)}
-                >
-                  <View style={[styles.templateHeader, { backgroundColor: tpl.color }]} />
-                  <View style={styles.templateContent}>
-                    <Text style={styles.templateIcon}>{tpl.icon}</Text>
-                    <Text variant="headingMd">{tpl.name}</Text>
-                    <Text variant="caption" color={COLORS.textSecondary} style={{ marginTop: 4 }}>
-                      {tpl.description}
-                    </Text>
+            <Text variant="displaySm" color={COLORS.textPrimary} style={styles.title}>
+              What do you want to track?
+            </Text>
+            <Text variant="body" color={COLORS.textSecondary} style={styles.subtitle}>
+              Select a preset or create your own.
+            </Text>
+
+            {/* Group templates by category so the picker is scannable */}
+            {(['fitness', 'learning', 'mindfulness', 'productivity', 'lifestyle'] as ActivityCategory[]).map(cat => {
+              const inCat = PRESET_ACTIVITIES.filter(t => {
+                // Re-use the same mapping as the service
+                const map: Record<string, ActivityCategory> = {
+                  gym: 'fitness', run: 'fitness',
+                  study: 'learning', read: 'learning', language: 'learning', code: 'productivity',
+                  meditate: 'mindfulness',
+                  water: 'lifestyle', coldShower: 'lifestyle', music: 'lifestyle',
+                };
+                return (map[t.id] ?? 'lifestyle') === cat;
+              });
+              if (inCat.length === 0) return null;
+              return (
+                <View key={cat} style={{ marginBottom: 16 }}>
+                  <Text variant="eyebrow" color={COLORS.textTertiary} style={styles.categoryLabel}>
+                    {cat.toUpperCase()}
+                  </Text>
+                  <View style={styles.grid}>
+                    {inCat.map(tpl => {
+                      const iconName = ACTIVITY_ICONS[tpl.id] || 'target';
+                      return (
+                        <TouchableOpacity
+                          key={tpl.id}
+                          style={styles.templateCard}
+                          onPress={() => handleSelectTemplate(tpl)}
+                          activeOpacity={0.85}
+                        >
+                          <View style={[styles.templateHeader, { backgroundColor: tpl.color }]}>
+                            <Icon name={iconName} size={28} color="#FFFFFF" />
+                          </View>
+                          <View style={styles.templateContent}>
+                            <Text variant="headingMd" color={COLORS.textPrimary}>{tpl.name}</Text>
+                            <Text variant="caption" color={COLORS.textSecondary} style={styles.templateDesc}>
+                              {tpl.description}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
-                </TouchableOpacity>
-              ))}
-            </View>
+                </View>
+              );
+            })}
+
+            {/* Suppress unused warning for the service â€” it's imported for future use */}
+            {activityTemplateService && null}
           </View>
         )}
 
@@ -96,40 +146,58 @@ export default function CreateActivityScreen() {
           <View>
             <View style={styles.configHeader}>
               <View style={[styles.configIconBox, { backgroundColor: selectedTemplate.color }]}>
-                <Text style={{ fontSize: 40 }}>{selectedTemplate.icon}</Text>
+                <Icon
+                  name={ACTIVITY_ICONS[selectedTemplate.id] || 'target'}
+                  size={32}
+                  color="#FFFFFF"
+                />
               </View>
-              <Text variant="headingLg" style={{ marginTop: 16 }}>{selectedTemplate.name}</Text>
+              <Text variant="displaySm" color={COLORS.textPrimary} style={{ marginTop: 16 }}>
+                {selectedTemplate.name}
+              </Text>
             </View>
 
             <View style={styles.configSection}>
-              <Text variant="headingMd" style={styles.sectionTitle}>Frequency</Text>
+              <Text variant="headingMd" color={COLORS.textPrimary} style={styles.sectionTitle}>
+                Frequency
+              </Text>
               <View style={styles.row}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.chip, frequency === 'daily' && styles.chipActive]}
                   onPress={() => setFrequency('daily')}
                 >
-                  <Text style={frequency === 'daily' ? styles.chipTextActive : undefined}>Daily</Text>
+                  <Text style={frequency === 'daily' ? styles.chipTextActive : undefined}>
+                    Daily
+                  </Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.chip, frequency === 'specific_days' && styles.chipActive]}
                   onPress={() => setFrequency('specific_days')}
                 >
-                  <Text style={frequency === 'specific_days' ? styles.chipTextActive : undefined}>Specific Days</Text>
+                  <Text style={frequency === 'specific_days' ? styles.chipTextActive : undefined}>
+                    Specific days
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             <View style={styles.configSection}>
-              <Text variant="headingMd" style={styles.sectionTitle}>Proof</Text>
+              <Text variant="headingMd" color={COLORS.textPrimary} style={styles.sectionTitle}>
+                Proof
+              </Text>
               <View style={styles.switchRow}>
-                <View>
-                  <Text variant="headingMd">Require Photo</Text>
-                  <Text variant="caption" color={COLORS.textSecondary}>Users must upload a photo to submit.</Text>
+                <View style={{ flex: 1 }}>
+                  <Text variant="bodyMedium" color={COLORS.textPrimary}>Require photo</Text>
+                  <Text variant="caption" color={COLORS.textSecondary}>
+                    Members must upload a photo to submit.
+                  </Text>
                 </View>
-                <Switch 
-                  value={requirePhoto} 
-                  onValueChange={setRequirePhoto} 
-                  trackColor={{ false: COLORS.surfaceDark, true: COLORS.brandPrimary }}
+                <Switch
+                  value={requirePhoto}
+                  onValueChange={setRequirePhoto}
+                  trackColor={{ false: COLORS.hairlineStrong, true: COLORS.accentBlue }}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor={COLORS.hairlineStrong}
                 />
               </View>
             </View>
@@ -139,115 +207,79 @@ export default function CreateActivityScreen() {
 
       {step === 2 && (
         <View style={styles.footer}>
-          <Button 
-            label={isSubmitting ? "Adding..." : "Add to Pact"} 
-            onPress={handleCreate} 
-            disabled={isSubmitting}
+          <Button
+            label={addActivity.isPending ? 'Addingâ€¦' : 'Add to pact'}
+            onPress={handleCreate}
+            disabled={addActivity.isPending}
+            loading={addActivity.isPending}
+            fullWidth
+            size="lg"
           />
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.surfaceBase,
-  },
+  container: { flex: 1, backgroundColor: COLORS.bgBase },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: SIZES.padding,
-    paddingBottom: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   backBtn: {
-    padding: 8,
-    marginLeft: -8,
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.bgPanel,
+    borderWidth: 1, borderColor: COLORS.hairline,
   },
-  content: {
-    padding: SIZES.padding,
-  },
-  title: {
-    marginBottom: 8,
-  },
-  subtitle: {
-    marginBottom: 24,
-    color: COLORS.textSecondary,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
+  content: { padding: SPACE.xl, paddingBottom: 120 },
+  title: { marginTop: 12, marginBottom: 8 },
+  subtitle: { lineHeight: 22, marginBottom: 24 },
+  categoryLabel: { marginBottom: 8, marginTop: 8 },
+  grid: { gap: 12 },
   templateCard: {
-    width: '48%',
-    backgroundColor: COLORS.surfaceBase,
-    borderRadius: 16,
-    marginBottom: 16,
+    backgroundColor: COLORS.bgPanel,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
     overflow: 'hidden',
-    ...SHADOWS.softElevation,
   },
   templateHeader: {
-    height: 4,
-    width: '100%',
-  },
-  templateContent: {
-    padding: 16,
-  },
-  templateIcon: {
-    fontSize: 32,
-    marginBottom: 12,
-  },
-  configHeader: {
+    height: 64,
     alignItems: 'center',
-    marginBottom: 32,
-  },
-  configIconBox: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
     justifyContent: 'center',
-    alignItems: 'center',
-    ...SHADOWS.softElevation,
   },
-  configSection: {
-    marginBottom: 32,
+  templateContent: { padding: 16 },
+  templateDesc: { marginTop: 4, lineHeight: 18 },
+  configHeader: { alignItems: 'center', marginBottom: 32 },
+  configIconBox: {
+    width: 80, height: 80, borderRadius: RADIUS.lg,
+    alignItems: 'center', justifyContent: 'center',
   },
-  sectionTitle: {
-    marginBottom: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  configSection: { marginBottom: 28 },
+  sectionTitle: { marginBottom: 12 },
+  row: { flexDirection: 'row', gap: 8 },
   chip: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: COLORS.surfaceBase,
-    ...SHADOWS.softElevation,
+    paddingHorizontal: 16, paddingVertical: 10,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.bgPanel,
+    borderWidth: 1, borderColor: COLORS.hairline,
   },
-  chipActive: {
-    backgroundColor: COLORS.brandPrimary,
-  },
-  chipTextActive: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
+  chipActive: { backgroundColor: COLORS.textPrimary, borderColor: COLORS.textPrimary },
+  chipTextActive: { color: COLORS.bgBase },
   switchRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceBase,
-    padding: 16,
-    borderRadius: 16,
-    ...SHADOWS.softElevation,
+    justifyContent: 'space-between',
+    paddingVertical: 4,
   },
   footer: {
-    padding: SIZES.padding,
-    paddingBottom: 40,
+    padding: SPACE.xl, paddingBottom: 36,
+    borderTopWidth: 1, borderTopColor: COLORS.hairline,
+    backgroundColor: COLORS.bgBase,
   },
 });

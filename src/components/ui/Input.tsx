@@ -64,7 +64,7 @@ export function Input({
     borderColor: error
       ? COLORS.danger
       : focus.value > 0.5
-        ? COLORS.inkDisplay
+        ? COLORS.textPrimary
         : COLORS.hairlineStrong,
     borderWidth: focus.value > 0.5 ? 1.5 : 1,
   }));
@@ -82,7 +82,7 @@ export function Input({
       <Animated.View style={[styles.inputContainer, borderStyle]}>
         {leadingIcon ? (
           <View style={styles.iconLeading}>
-            <Icon name={leadingIcon} size={20} color={isFocused ? COLORS.inkDisplay : COLORS.inkTertiary} />
+            <Icon name={leadingIcon} size={20} color={isFocused ? COLORS.textPrimary : COLORS.textTertiary} />
           </View>
         ) : null}
         <TextInput
@@ -92,8 +92,8 @@ export function Input({
             showTrailing ? { paddingRight: 0 } : null,
             style,
           ]}
-          placeholderTextColor={COLORS.inkTertiary}
-          selectionColor={COLORS.accent}
+          placeholderTextColor={COLORS.textTertiary}
+          selectionColor={COLORS.accentBlue}
           onFocus={handleFocus}
           onBlur={handleBlur}
           secureTextEntry={isSecure}
@@ -111,7 +111,7 @@ export function Input({
             accessibilityLabel={secureTextEntry ? (isSecure ? 'Show password' : 'Hide password') : undefined}
           >
             {trailingIconName ? (
-              <Icon name={trailingIconName} size={20} color={COLORS.inkTertiary} />
+              <Icon name={trailingIconName} size={20} color={COLORS.textTertiary} />
             ) : null}
           </Pressable>
         ) : null}
@@ -123,13 +123,13 @@ export function Input({
               {error}
             </Text>
           ) : hint ? (
-            <Text variant="caption" color={COLORS.inkSecondary} style={styles.message}>
+            <Text variant="caption" color={COLORS.textSecondary} style={styles.message}>
               {hint}
             </Text>
           ) : null}
         </View>
         {showCharCount && rest.maxLength ? (
-          <Text variant="caption" color={COLORS.inkTertiary} style={styles.charCount}>
+          <Text variant="caption" color={COLORS.textTertiary} style={styles.charCount}>
             {`${String(rest.value || '').length}/${rest.maxLength}`}
           </Text>
         ) : null}
@@ -144,10 +144,10 @@ const styles = StyleSheet.create({
   },
   label: {
     marginBottom: 8,
-    color: COLORS.inkPrimary,
+    color: COLORS.textPrimary,
   },
   inputContainer: {
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.bgPanel,
     borderRadius: RADIUS.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: COLORS.inkDisplay,
+    color: COLORS.textPrimary,
   },
   iconLeading: {
     paddingLeft: 16,

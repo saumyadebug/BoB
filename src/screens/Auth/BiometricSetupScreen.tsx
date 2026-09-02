@@ -55,15 +55,15 @@ export default function BiometricSetupScreen({ navigation }: any) {
           <Icon
             name={biometricType === 'Face ID' ? 'user' : 'fingerprint'}
             size={48}
-            color={COLORS.accent}
+            color={COLORS.accentBlue}
           />
         </View>
 
-        <Text variant="eyebrow" color={COLORS.inkSecondary} style={styles.step}>Step 2 of 2</Text>
-        <Text variant="displaySm" color={COLORS.inkDisplay} style={styles.title}>
+        <Text variant="eyebrow" color={COLORS.textSecondary} style={styles.step}>Step 2 of 2</Text>
+        <Text variant="displaySm" color={COLORS.textPrimary} style={styles.title}>
           Quick, secure access
         </Text>
-        <Text variant="body" color={COLORS.inkSecondary} style={styles.description}>
+        <Text variant="body" color={COLORS.textSecondary} style={styles.description}>
           Use {biometricType} to sign in faster. Your streaks stay private to you.
         </Text>
 
@@ -90,7 +90,7 @@ export default function BiometricSetupScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surfaceBase },
+  container: { flex: 1, backgroundColor: COLORS.bgBase },
   content: {
     flex: 1,
     paddingHorizontal: 32,

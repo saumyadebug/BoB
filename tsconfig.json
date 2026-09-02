@@ -11,5 +11,11 @@
   "include": [
     "**/*.ts",
     "**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "supabase/functions/**",
+    "dist",
+    ".expo"
   ]
 }

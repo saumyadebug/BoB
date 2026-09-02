@@ -1,12 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  addActivity,
-  archiveActivity,
   createGroup,
   deleteGroup,
-  fetchGroupActivities,
   fetchGroupWithMembers,
   fetchUserGroups,
+  getGroupStreak,
   joinGroupByCode,
   leaveGroup,
   regenerateInviteCode,
@@ -14,15 +12,20 @@ import {
   updateGroup,
 } from '@/services/groupService';
 import { STALE_TIMES } from '@/services/queryClient';
+import { ActivitySeed, UpdateGroupInput } from '@/types';
+import { useAuthStore } from '@/store/useAuthStore';
 import {
-  ActivitySeed,
-  AddActivityInput,
-  UpdateGroupInput,
-} from '@/types';
+  useGroupActivities as useGroupActivitiesImpl,
+  useAddActivity,
+  useArchiveActivity,
+  useUnarchiveActivity,
+  useUpdateActivity,
+} from './useActivities';
 
 /**
  * React Query hooks for groups, members & activities.
- * Query keys are centralized here for precise cache invalidation.
+ * Activity hooks (useGroupActivities, useAddActivity, etc.) live in useActivities
+ * and are re-exported here for convenience.
  */
 
 export const GROUP_KEYS = {
@@ -55,15 +58,6 @@ export function useGroupMembers(groupId: string) {
   return useQuery({
     queryKey: GROUP_KEYS.groupMembers(groupId),
     queryFn: async () => (await fetchGroupWithMembers(groupId)).members,
-    enabled: groupId.length > 0,
-    staleTime: STALE_TIMES.groups,
-  });
-}
-
-export function useGroupActivities(groupId: string, unarchivedOnly: boolean = true) {
-  return useQuery({
-    queryKey: GROUP_KEYS.groupActivities(groupId),
-    queryFn: () => fetchGroupActivities(groupId, unarchivedOnly),
     enabled: groupId.length > 0,
     staleTime: STALE_TIMES.groups,
   });
@@ -156,25 +150,99 @@ export function useDeleteGroup() {
   });
 }
 
-// ─── Activity Mutations ──────────────────────────────────────────────────────
+// ─── Activity Hooks (re-exported from useActivities for convenience) ─────────
 
-export function useAddActivity() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ groupId, input }: { groupId: string; input: AddActivityInput }) =>
-      addActivity(groupId, input),
-    onSuccess: (_activity, variables) => {
-      queryClient.invalidateQueries({ queryKey: GROUP_KEYS.groupActivities(variables.groupId) });
-    },
+export const useGroupActivities = useGroupActivitiesImpl;
+export { useAddActivity, useArchiveActivity, useUnarchiveActivity, useUpdateActivity };
+
+// ─── Group Streak ────────────────────────────────────────────────────────────
+
+/**
+ * Read the current group streak (consecutive days with full participation).
+ * Returns 0 if the group is empty or the calculation fails.
+ */
+export function useGroupStreak(groupId: string) {
+  return useQuery({
+    queryKey: ['group-streak', groupId],
+    queryFn: () => getGroupStreak(groupId),
+    enabled: groupId.length > 0,
+    staleTime: 60 * 1000, // 1 minute — submissions can change it
   });
 }
 
-export function useArchiveActivity() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (activityId: string) => archiveActivity(activityId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['group-activities'] });
+// ─── Leaderboard (members across all my groups) ──────────────────────────────
+
+/**
+ * Leaderboard entry — one user across one of my groups.
+ */
+export interface LeaderboardEntry {
+  userId: string;
+  displayName: string;
+  username: string;
+  avatarUrl: string | null;
+  xp: number;
+  level: number;
+  longestStreak: number;
+  groupId: string;
+  groupName: string;
+}
+
+import { supabase as supabaseClient } from '@/services/supabase';
+
+/**
+ * Fetch every member of every group the user is in, then deduplicate by
+ * user id (a user can be in multiple groups). Returned entries include
+ * the user + their group name + their stats.
+ */
+export function useMyGroupMembers() {
+  return useQuery({
+    queryKey: ['my-group-members'],
+    queryFn: async (): Promise<LeaderboardEntry[]> => {
+      const uid = useAuthStore.getState().session?.user?.id;
+      if (!uid) return [];
+
+      // 1) Get all group ids the user is in
+      const { data: myMemberships, error: mErr } = await supabaseClient
+        .from('group_members')
+        .select('group_id, groups:groups(id, name)')
+        .eq('user_id', uid);
+      if (mErr) throw mErr;
+
+      const groupIds = (myMemberships ?? []).map((m: any) => m.group_id);
+      if (groupIds.length === 0) return [];
+
+      // 2) Get all members of those groups, joined with users
+      const { data: allMembers, error: aErr } = await supabaseClient
+        .from('group_members')
+        .select(`
+          user_id,
+          group_id,
+          group:groups(id, name),
+          user:users(*)
+        `)
+        .in('group_id', groupIds);
+      if (aErr) throw aErr;
+
+      // 3) Deduplicate by user_id (keep the first group encountered)
+      const seen = new Set<string>();
+      const entries: LeaderboardEntry[] = [];
+      for (const m of (allMembers ?? []) as any[]) {
+        if (!m.user || seen.has(m.user_id)) continue;
+        seen.add(m.user_id);
+        entries.push({
+          userId: m.user_id,
+          displayName: m.user.display_name ?? m.user.username ?? 'Member',
+          username: m.user.username ?? 'member',
+          avatarUrl: m.user.avatar_url ?? null,
+          xp: m.user.xp ?? 0,
+          level: m.user.level ?? 1,
+          longestStreak: m.user.longest_streak ?? 0,
+          groupId: m.group?.id ?? m.group_id,
+          groupName: m.group?.name ?? 'Pact',
+        });
+      }
+      return entries;
     },
+    staleTime: STALE_TIMES.groups,
   });
 }

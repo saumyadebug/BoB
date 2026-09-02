@@ -16,12 +16,15 @@ export * from './ComparativeView';
 export * from './YearOverviewHeatmap';
 export * from './Icon';
 export * from './PhosphorIcon';
+export * from './MatrixGrid';
+export * from './HudPanel';
 
 // Animated components
 export * from './SkeletonLoader';
 export * from './StreakCounter';
 export * from './XPChip';
 export * from './ConfettiBurst';
+export * from './PasswordStrengthMeter';
 
 // Brand
 export * from '../brand/VoltMark';

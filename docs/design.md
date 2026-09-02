@@ -1,137 +1,89 @@
 # StreakPact — Design System Document
 
-**Version:** 1.1  
-**Date:** August 23, 2026  
-**Theme Codename:** "Tactile Hardware" (Neumorphic)
+**Theme Codename:** "Cyber-Minimalist Dark OS" (Pulsar OS / Volta Studio aesthetic)  
+**Version:** 2.0  
+**Last Updated:** August 2026
 
 ---
 
-## 1. Design Philosophy
+## 1. Design Philosophy & Aesthetic
 
-StreakPact's visual identity embraces **tactile neumorphism**. It should feel like an expensive piece of physical hardware (like a Teenage Engineering synthesizer or a premium mechanical keyboard). Every button looks like it can be physically pushed, and every screen feels like a molded plastic or metal console.
+StreakPact's visual identity embraces a **deep-space, cyber-minimalist OS** aesthetic.
+It takes inspiration from aerospace telemetry HUDs, futuristic control centers (Pulsar OS / Volta Studio), and high-precision productivity tools.
 
 ### Core Principles
-1. **Physicality:** Use soft drop shadows for elevated elements and harsh inset shadows for recessed elements.
-2. **Satisfying Interactions:** Every tap must have an active state that visually pushes the element into the surface (`translate-y` + inset shadows).
-3. **Utilitarian + Playful:** The base is a clean, mechanical gray, accented by bright, highly saturated pops of Safety Orange and Bright Mint.
-4. **Digital displays:** Data (like streak counts) shouldn't just be text on a background; it should look like an LED or LCD screen embedded in the plastic.
+1. **OLED Pitch Black Canvas (`#050608` / `#000000`):** Creates stark, immersive contrast.
+2. **Layered Smoked Glass Panels (`#101216`, `#16181F`):** Depth is communicated through layered dark opacity and crisp `1px` hairline borders (`rgba(255, 255, 255, 0.08)`), rather than heavy drop shadows.
+3. **High-Voltage Signal Accents:**
+   - **Electric Red (`#FF334B`):** Dedicated to `LIVE!`, `NOW!`, active day indicators (`TUE`), record states, and urgent alerts.
+   - **Cosmic Ice Blue (`#3A82F7`):** Primary interactive elements, selected states, and progress indicators.
+4. **Dual Typographic Precision:** Clean modern sans (`Inter`) for UI copy and headlines, paired with technical monospace (`JetBrains Mono`) for all metrics, timers (`02:14`), phase markers (`Phase 2 of 3`), percentages (`51%`), and coordinates.
+5. **Tactile Hardware Components:**
+   - **Capsule Pills:** Translucent dark pill buttons (`rounded-full`) with fine borders (`Work ⊕`, `Talks ⊝`).
+   - **Tactile Squircle Matrix:** Uniform grid tiles (`rounded-2xl`) with status indicator pips (red/blue).
+   - **Floating HUD Modules:** Bottom/top telemetry panels with real-time timers and playback/scrubber controls.
+   - **Bracketed Action Buttons:** Technical monospace action triggers (`[ UPLOAD NOW ]`, `[ SCHEDULE CALL ]`).
 
 ---
 
-## 2. Color System
+## 2. Color Palette Tokens
 
-### 2.1 Core Tokens
-
-| Token | Hex | Usage |
-|---|---|---|
-| `--surface-base` | `#E5E7EB` | The global background (soft matte gray) |
-| `--surface-dark` | `#D1D5DB` | Slightly deeper gray for pressed states |
-| `--surface-screen` | `#111827` | Matte black for recessed digital displays |
-| `--brand-primary` | `#F97316` | Safety Orange (Main CTA, FAB, streaks) |
-| `--brand-primary-dark` | `#C2410C` | Deep orange for 3D button edges |
-| `--success` | `#34D399` | Bright Mint (Completed activities, LEDs) |
-| `--danger` | `#EF4444` | Red (Missed streaks, destructive actions) |
-| `--text-primary` | `#1F2937` | Dark gray/black for main text |
-| `--text-secondary` | `#6B7280` | Medium gray for subtitles |
-| `--text-display` | `#F97316` | Orange text inside digital displays |
-| `--shadow-light` | `#FFFFFF` | The top-left highlight shadow |
-| `--shadow-dark` | `#C8C9CC` | The bottom-right drop shadow |
+| Token | Hex / Value | Usage |
+| :--- | :--- | :--- |
+| `bgBase` | `#050608` | OLED pitch black canvas background |
+| `bgPanel` | `#101216` | Smoked glass container panels & cards |
+| `bgSurface` | `#16181F` | Squircle grid tiles, inner inputs, elevated cards |
+| `bgGlass` | `rgba(18, 20, 26, 0.85)` | Translucent floating HUD modules |
+| `bgPill` | `rgba(255, 255, 255, 0.07)` | Capsule pill button background |
+| `accentRed` | `#FF334B` | Signal Electric Red: `LIVE!` tags, active `TUE`, timers |
+| `accentBlue` | `#3A82F7` | Cosmic Ice Blue: Interactive links, selected states |
+| `textPrimary` | `#FFFFFF` | Headlines, primary text, large display numbers |
+| `textSecondary` | `#8E95A2` | Subtitles, labels, metadata |
+| `textTertiary` | `#525866` | Disabled states, bracket borders, subtle hints |
+| `hairline` | `rgba(255, 255, 255, 0.08)` | 1px panel border |
+| `hairlineStrong` | `rgba(255, 255, 255, 0.16)` | 1px active/focused border |
 
 ---
 
-## 3. Neumorphic Shadow System
+## 3. Typography Hierarchy
 
-The entire aesthetic relies on precise shadow values.
-
-### 3.1 Drop Shadows (Elevated / Convex)
-Used for cards, unpressed buttons, and the bottom tab bar.
-*   **Soft Elevation (Buttons):** `shadow-[3px_3px_6px_#c8c9cc,-3px_-3px_6px_#ffffff]`
-*   **Medium Elevation (Cards):** `shadow-[8px_8px_16px_#c8c9cc,-8px_-8px_16px_#ffffff]`
-*   **High Elevation (Header/Footer):** `shadow-[0_-5px_20px_rgba(0,0,0,0.05)]`
-
-### 3.2 Inset Shadows (Recessed / Concave)
-Used for pressed states, image placeholders, and input fields.
-*   **Shallow Recess (Pressed Button):** `shadow-[inset_2px_2px_4px_rgba(0,0,0,0.2),inset_-2px_-2px_4px_rgba(255,255,255,0.7)]`
-*   **Deep Recess (Screens/Images):** `shadow-[inset_4px_4px_8px_rgba(0,0,0,0.1),inset_-4px_-4px_8px_rgba(255,255,255,0.8)]`
+| Role | Font Family | Size / Line Height | Tracking | Usage |
+| :--- | :--- | :--- | :--- | :--- |
+| **Display Hero** | `SpaceGrotesk-Bold` / `Inter-Bold` | 48–64px / 52–68px | `-0.03em` | Massive hero numbers (`2`, `3`), title (`Build`) |
+| **Headline** | `Inter-SemiBold` | 20–24px / 26–28px | `-0.01em` | Card titles, screen headlines |
+| **Body** | `Inter-Regular` | 14px / 20px | `0` | Content text, descriptions |
+| **Label / Meta** | `Inter-Medium` | 11–12px / 16px | `0.02em` | Tags, subtitles, day headers |
+| **Mono Data** | `JetBrainsMono-Bold` | 18–32px | `-0.02em` | Timers (`02:14`), stats (`51%`), phases (`Phase 2 of 3`) |
+| **Mono Sm** | `JetBrainsMono-Medium` | 11–13px | `0.05em` | Bracketed actions (`[ SCHEDULE CALL ]`) |
 
 ---
 
-## 4. Typography System
+## 4. Reusable UI Components
 
-### 4.1 Font Stack
+### 4.1 Button (`<Button />`)
+- `primary`: Solid Cosmic Ice Blue (`#3A82F7`)
+- `pill`: Translucent dark capsule (`rgba(255,255,255,0.07)`) with 1px border
+- `signal`: Solid Electric Red capsule (`#FF334B`)
+- `bracketed`: Technical monospace action `[ ACTION LABEL ]`
+- `ghost`: Transparent with subtle hover tint
 
-| Role | Font | Weight | Fallback |
-|---|---|---|---|
-| **Headings & Body** | `Inter` | Regular (400), Medium (500), Bold (700) | system-ui, sans-serif |
-| **Data & Numbers** | `Roboto Mono` | Medium (500), Bold (700) | monospace |
+### 4.2 Card (`<Card />`)
+- `glass`: Translucent smoked graphite panel (`rgba(18, 20, 26, 0.85)`)
+- `squircle`: Rounded tile (`rounded-2xl`) for grid items
+- `elevated`: Smoked `#101216` with hairline border
+- `flat`: Solid flat `#101216`
 
-*We use Inter for a clean, mechanical, utilitarian look. Roboto Mono is used strictly inside recessed "screens" to mimic digital hardware displays.*
+### 4.3 Matrix Grid (`<MatrixGrid />`)
+- Day pill headers (`MON`, `TUE` active in red, `WED`, `THU`, `FRI`)
+- Tactile squircle tiles with status dots (red/blue pips) and circular metric dials (`51%`)
 
-### 4.2 Type Scale
-- `heading-lg`: 24px, Bold (Inter)
-- `heading-md`: 18px, SemiBold (Inter)
-- `body`: 16px, Regular (Inter)
-- `caption`: 12px, Medium (Inter)
-- `digital-display`: 20px, Bold (Roboto Mono, usually Orange)
+### 4.4 HUD Panel (`<HudPanel />`)
+- Status readout + real-time monospace countdown timer
+- Scrubber and playback controls (`⏮ ⏸ ⏭`)
+- Action ring trigger with circular accent halo
+- Large dual split numerals (`2` / `3`)
 
----
-
-## 5. Component Specifications
-
-### 5.1 The "Hardware" Card
-- Background: `--surface-base`
-- Shadow: Medium Elevation drop shadow
-- Border Radius: `32px` (very pillowy)
-- Padding: `24px`
-
-### 5.2 Recessed Image/Media Placeholder
-- Background: `--surface-dark`
-- Shadow: Deep Recess inset shadow
-- Border Radius: `16px`
-- Usage: For submission photos. It makes the photo look like a screen embedded in the plastic card.
-
-### 5.3 Digital Display (Streak Counter)
-- Background: `--surface-screen` (Matte Black)
-- Text: `--text-display` (Safety Orange)
-- Font: Roboto Mono
-- Shadow: Shallow Recess inset shadow (to look embedded)
-- Border Radius: `8px`
-- Padding: `8px 12px`
-
-### 5.4 Buttons (Physical Rubber Keys)
-- Background: `--surface-base`
-- Shadow (Default): Soft Elevation drop shadow
-- Shadow (Pressed): Shallow Recess inset shadow
-- Transform (Pressed): `translate-y: 2px` (moves down physically)
-- Border Radius: `12px` for normal keys, `999px` (pill) for main actions.
-
-### 5.5 Main FAB (The "Big Red Button")
-- Background: `--brand-primary` (Safety Orange)
-- Shadow (Default): Hard physical bottom edge `shadow-[0_4px_0_#c2410c]`
-- Shadow (Pressed): Removes bottom edge `shadow-[0_0px_0_#c2410c]`
-- Transform (Pressed): `translate-y: 4px` (satisfying deep click)
-- Border Radius: `999px`
-
-### 5.6 LED Indicators (Today Banner)
-- Pending: A dark inset circle `shadow-[inset_2px_2px_4px_rgba(0,0,0,0.2)]`
-- Completed: A glowing Mint Green circle `bg-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.8)]`
-
----
-
-## 6. Layout & Spacing
-
-- Base unit: 4px
-- Standard screen padding: 24px
-- Gap between cards: 24px
-- Top Header: Pill-shaped or etched metal plate with rounded bottom corners (`rounded-b-[32px]`).
-- Bottom Console: Floating tab bar that looks like a physical controller dock.
-
----
-
-## 7. Assets Required
-- Since the design relies heavily on shadows and pure geometry, we need very few image assets.
-- Icons should be thick, line-art or solid SVGs (like Phosphor Icons, Bold weight).
-- No complex illustrations needed; empty states should feature recessed panels and LED typography.
-
----
-*This document supersedes previous theme concepts and is the master blueprint for the Tactile Hardware Neumorphic UI.*
+### 4.5 Badge (`<Badge />`)
+- `live`: Electric Red badge with pulse dot (`LIVE!`, `NOW!`)
+- `pill`: Semi-translucent dark pill badge
+- `primary`, `positive`, `warning`, `danger`, `outline`

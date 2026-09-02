@@ -13,9 +13,9 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Confetti: brand-tinted, not rainbow. Single accent + 2 supporting tones.
 const CONFETTI_COLORS = [
-  COLORS.accent,
+  COLORS.accentBlue,
   COLORS.accentHover,
-  COLORS.inkDisplay,
+  COLORS.textPrimary,
   COLORS.positive,
   '#FFB07A', // accent 200
   '#FFD0B0', // accent 100

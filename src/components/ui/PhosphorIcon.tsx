@@ -4,23 +4,26 @@ import {
   ArrowRight, ArrowLeft, ArrowUpRight,
   Barbell, Bell, BellRinging, Book,
   Calendar, CalendarBlank, CalendarCheck,
-  Camera, CaretDown, CaretRight, CaretUp, ChartBar, ChartLineUp,
-  Check, CheckCircle, ChatCircle, Code, Compass, Copy, Crown, CrownSimple,
+  Camera, CaretDown, CaretRight, CaretUp, CaretLeft, ChartBar, ChartLineUp,
+  Check, CheckCircle, ChatCircle, Clock, Code, Compass, Copy, Crown, CrownSimple,
   Drop,
+  Envelope,
   Eye, EyeSlash,
   Fire, FireSimple, Flag, Funnel,
-  Gear, GearSix,
+  Gear, GearSix, Globe,
   HandWaving, Heart, House, HouseSimple,
   Hourglass, HourglassMedium,
   Image, Info,
   Leaf, Lightning, LightningSlash, Link, Lock, LockOpen,
   MagnifyingGlass, MapPin, Medal, MinusCircle, Moon, MoonStars, MusicNotes,
-  PaintBrush, PaperPlaneRight, PaperPlaneTilt, PawPrint, PenNib,
-  PencilSimple, PersonArmsSpread,
+  Notebook,
+  PaintBrush, PaperPlaneRight, PaperPlaneTilt, Pause, PawPrint, PenNib,
+  PencilSimple, PersonArmsSpread, Play,
   Plus, PlusCircle,
   QrCode,
   Rocket,
-  Shield, ShieldCheck, ShareNetwork, SignOut, SlidersHorizontal, Snowflake, Sparkle, Star, Sun, SunHorizon,
+  Shield, ShieldCheck, ShareNetwork, Shuffle, SignOut, SlidersHorizontal, Snowflake, Sparkle, SpeakerHigh, Star, Sun, SunHorizon,
+  ArrowsClockwise,
   Target, Trash, TrashSimple, Trophy,
   User, UserCircle, UserPlus, UsersFour, UsersThree,
   Warning, WarningCircle,
@@ -44,7 +47,7 @@ interface Props {
  * Keeps the rest of the app decoupled from phosphor.
  */
 export function PhosphorIcon({ name, size = 20, color, bold = false, fillColor }: Props) {
-  const c = color ?? COLORS.inkPrimary;
+  const c = color ?? COLORS.textPrimary;
   const wantFill = bold || name.endsWith('-fill') || !!fillColor;
   const baseName = (name.endsWith('-fill') ? name.replace(/-fill$/, '') : name) as IconName;
   const weight: any = wantFill ? 'fill' : 'regular';
@@ -68,6 +71,16 @@ export function PhosphorIcon({ name, size = 20, color, bold = false, fillColor }
     case 'caret-down':     return <CaretDown size={size} color={c} weight={weight} />;
     case 'caret-right':    return <CaretRight size={size} color={c} weight={weight} />;
     case 'caret-up':       return <CaretUp size={size} color={c} weight={weight} />;
+    case 'caret-left':     return <CaretLeft size={size} color={c} weight={weight} />;
+    case 'clock':          return <Clock size={size} color={c} weight={weight} />;
+    case 'play':           return <Play size={size} color={c} weight={weight} />;
+    case 'pause':          return <Pause size={size} color={c} weight={weight} />;
+    case 'shuffle':        return <Shuffle size={size} color={c} weight={weight} />;
+    case 'arrows-clockwise': return <ArrowsClockwise size={size} color={c} weight={weight} />;
+    case 'speaker-high':   return <SpeakerHigh size={size} color={c} weight={weight} />;
+    case 'globe':          return <Globe size={size} color={c} weight={weight} />;
+    case 'envelope':       return <Envelope size={size} color={c} weight={weight} />;
+    case 'notebook':       return <Notebook size={size} color={c} weight={weight} />;
     case 'camera':         return <Camera size={size} color={c} weight={weight} />;
     case 'image':          return <Image size={size} color={c} weight={weight} />;
     case 'paper-plane-right': return <PaperPlaneRight size={size} color={c} weight={weight} />;

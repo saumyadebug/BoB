@@ -27,9 +27,9 @@ const STATUS_COLOR: Record<string, string> = {
   submitted: COLORS.positive,
   away: COLORS.warning,
   pending: COLORS.warning,
-  rest: COLORS.inkTertiary,
+  rest: COLORS.textTertiary,
   missed: COLORS.danger,
-  offline: COLORS.inkTertiary,
+  offline: COLORS.textTertiary,
 };
 
 export function Avatar({
@@ -47,7 +47,7 @@ export function Avatar({
     : '';
 
   // Background tint seeded from name
-  const bgColor = name ? hashColor(name) : COLORS.surfaceSunken;
+  const bgColor = name ? hashColor(name) : COLORS.bgSurface;
 
   const containerStyle = [
     styles.container,
@@ -57,7 +57,7 @@ export function Avatar({
       borderRadius: dimension / 2,
       backgroundColor: bgColor,
     },
-    ring ? { borderWidth: 2, borderColor: COLORS.surfaceBase } : null,
+    ring ? { borderWidth: 2, borderColor: COLORS.bgBase } : null,
     style,
   ];
 
@@ -87,7 +87,7 @@ export function Avatar({
               right: 0,
               bottom: 0,
               borderWidth: Math.max(1.5, dimension * 0.04),
-              borderColor: COLORS.surfaceBase,
+              borderColor: COLORS.bgBase,
             },
           ]}
         />
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   },
   initials: {
     ...TYPOGRAPHY.bodyMedium,
-    color: COLORS.inkDisplay,
+    color: COLORS.textPrimary,
     fontWeight: '600',
   },
   empty: {

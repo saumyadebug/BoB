@@ -16,11 +16,13 @@ import { VoltMark } from '@/components/brand/VoltMark';
 import { storage } from '@/utils/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@/store/useAuthStore';
+import { supabase } from '@/services/supabase';
+import { userService } from '@/services/userService';
 
 const { width } = Dimensions.get('window');
 
 export default function SplashScreen({ navigation }: any) {
-  const { setUser } = useAuthStore();
+  const { setUser, setSession } = useAuthStore();
   const markScale = useSharedValue(0.6);
   const markOpacity = useSharedValue(0);
   const markRotate = useSharedValue(-15);
@@ -50,30 +52,32 @@ export default function SplashScreen({ navigation }: any) {
 
   const finishSplash = async () => {
     try {
-      const token = await storage.getItem('streakpact_jwt');
+      // 1) Recover Supabase session
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData.session;
       const onboardingCompleted = await AsyncStorage.getItem('onboarding_completed');
 
-      if (token) {
-        setUser({
-          id: 'restored',
-          email: 'user@streakpact.app',
-          username: 'You',
-          displayName: 'You',
-          avatarUrl: null,
-          xp: 0,
-          level: 1,
-          totalSubmissions: 0,
-          longestStreak: 0,
-          shieldsAvailable: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
+      if (session) {
+        // 2) Restore the JWT in secure storage
+        await storage.setItem('streakpact_jwt', session.access_token);
+        setSession(session);
+
+        // 3) Try to hydrate the user profile row
+        const profile = await userService.fetchCurrentUser();
+        if (profile) {
+          setUser(profile);
+        } else {
+          // Session exists but no profile yet â€” send to setup
+          navigation.replace('SetupProfile');
+          return;
+        }
       } else if (onboardingCompleted === 'true') {
         navigation.replace('Login');
       } else {
         navigation.replace('Onboarding');
       }
-    } catch {
+    } catch (e) {
+      console.warn('Splash init error:', e);
       navigation.replace('Onboarding');
     }
   };
@@ -109,14 +113,14 @@ export default function SplashScreen({ navigation }: any) {
         </Animated.View>
 
         <Animated.View style={[styles.tagWrap, tagStyle]}>
-          <Text variant="eyebrow" color={COLORS.inkSecondary}>
+          <Text variant="eyebrow" color={COLORS.textSecondary}>
             Show up. Together.
           </Text>
         </Animated.View>
       </View>
 
       <View style={styles.footer}>
-        <Text variant="caption" color={COLORS.inkTertiary} style={styles.version}>
+        <Text variant="caption" color={COLORS.textTertiary} style={styles.version}>
           v1.0.0
         </Text>
       </View>
@@ -127,7 +131,7 @@ export default function SplashScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.surfaceBase,
+    backgroundColor: COLORS.bgBase,
   },
   content: {
     flex: 1,
@@ -145,14 +149,14 @@ const styles = StyleSheet.create({
     fontSize: 36,
     lineHeight: 40,
     letterSpacing: -1.0,
-    color: COLORS.inkDisplay,
+    color: COLORS.textPrimary,
   },
   wordmarkAccent: {
     fontFamily: 'SpaceGrotesk-Bold',
     fontSize: 36,
     lineHeight: 40,
     letterSpacing: -1.0,
-    color: COLORS.accent,
+    color: COLORS.accentBlue,
   },
   tagWrap: {
     marginTop: 12,

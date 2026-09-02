@@ -26,7 +26,7 @@ export function ActivityCard({ activity, memberStatuses, onPress, onSubmit }: Ac
   const iconName = (activity.icon as IconName) || 'target';
   return (
     <Card variant="elevated" padding="none" onPress={onPress} style={styles.card}>
-      {/* Activity color band — 4px top, full-width, no side stripe */}
+      {/* Activity color band â€” 4px top, full-width, no side stripe */}
       <View style={[styles.headerEdge, { backgroundColor: activity.color }]} />
 
       <View style={styles.content}>
@@ -35,10 +35,10 @@ export function ActivityCard({ activity, memberStatuses, onPress, onSubmit }: Ac
             <Icon name={iconName} size={22} color={activity.color} />
           </View>
           <View style={styles.titleContainer}>
-            <Text variant="headingMd" color={COLORS.inkDisplay} numberOfLines={1}>
+            <Text variant="headingMd" color={COLORS.textPrimary} numberOfLines={1}>
               {activity.name}
             </Text>
-            <Text variant="caption" color={COLORS.inkSecondary}>
+            <Text variant="caption" color={COLORS.textSecondary}>
               {activity.frequency === 'daily' ? 'Daily' : 'Custom days'}
             </Text>
           </View>

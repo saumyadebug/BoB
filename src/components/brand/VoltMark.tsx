@@ -18,7 +18,7 @@ interface VoltMarkProps {
   style?: ViewStyle;
 }
 
-export function VoltMark({ size = 64, color = COLORS.accent, withHalo = false, style }: VoltMarkProps) {
+export function VoltMark({ size = 64, color = COLORS.accentBlue, withHalo = false, style }: VoltMarkProps) {
   return (
     <View style={[{ width: size, height: size }, style]}>
       {withHalo && (
@@ -27,7 +27,7 @@ export function VoltMark({ size = 64, color = COLORS.accent, withHalo = false, s
             StyleSheet.absoluteFill,
             {
               borderRadius: size / 2,
-              backgroundColor: COLORS.accentTint,
+              backgroundColor: COLORS.bgOverlay,
             },
           ]}
         />
@@ -36,12 +36,19 @@ export function VoltMark({ size = 64, color = COLORS.accent, withHalo = false, s
         <Defs>
           <LinearGradient id="voltGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
             <Stop offset="0" stopColor={color} stopOpacity="1" />
-            <Stop offset="1" stopColor={color} stopOpacity="0.85" />
+            <Stop offset="1" stopColor={COLORS.accentRed} stopOpacity="0.85" />
           </LinearGradient>
         </Defs>
-        {/* The Volt: two parallelogram forms that interlock */}
+
+        {/* Top parallelogram: starts top-right, leans down-left */}
         <Path
-          d="M38 4 L14 36 L26 36 L22 60 L50 26 L36 26 L42 4 Z"
+          d="M36 6 L54 6 L28 32 L16 32 Z"
+          fill="url(#voltGrad)"
+        />
+
+        {/* Bottom parallelogram: starts mid-left, leans down-right */}
+        <Path
+          d="M28 36 L48 36 L24 58 L10 58 Z"
           fill="url(#voltGrad)"
         />
       </Svg>
@@ -63,8 +70,8 @@ interface VoltWordmarkProps {
 
 export function VoltWordmark({
   size = 28,
-  color = COLORS.accent,
-  textColor = COLORS.inkDisplay,
+  color = COLORS.accentBlue,
+  textColor = COLORS.textPrimary,
   showMark = true,
   style,
 }: VoltWordmarkProps) {
@@ -110,7 +117,7 @@ export function VoltAvatar({ size = 96, withHalo = true, style }: VoltAvatarProp
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: COLORS.surfaceBase,
+          backgroundColor: COLORS.bgBase,
         },
         style,
       ]}
@@ -121,20 +128,20 @@ export function VoltAvatar({ size = 96, withHalo = true, style }: VoltAvatarProp
             StyleSheet.absoluteFill,
             {
               borderRadius: size / 2,
-              backgroundColor: COLORS.accentTintStrong,
+              backgroundColor: COLORS.accentMuted,
             },
           ]}
         />
       )}
       <View style={styles.avatarInner}>
-        <VoltMark size={size * 0.6} color={COLORS.accent} />
+        <VoltMark size={size * 0.6} color={COLORS.accentBlue} />
       </View>
     </View>
   );
 }
 
 /**
- * VoltInScreen — the mascot seen peeking from a corner (empty states).
+ * VoltPeek — the mascot seen peeking from a corner (empty states).
  */
 export function VoltPeek({ size = 80, style }: { size?: number; style?: ViewStyle }) {
   return (
@@ -142,13 +149,13 @@ export function VoltPeek({ size = 80, style }: { size?: number; style?: ViewStyl
       <Svg width={size} height={size} viewBox="0 0 80 80" fill="none">
         <Defs>
           <LinearGradient id="peekGrad" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
-            <Stop offset="0" stopColor={COLORS.accent} stopOpacity="0.95" />
-            <Stop offset="1" stopColor={COLORS.accentHover} stopOpacity="0.85" />
+            <Stop offset="0" stopColor={COLORS.accentBlue} stopOpacity="0.95" />
+            <Stop offset="1" stopColor="#3A82F7" stopOpacity="0.85" />
           </LinearGradient>
         </Defs>
         {/* A circular plate with the bolt in front */}
-        <Circle cx="40" cy="40" r="36" fill={COLORS.accentTint} />
-        <Circle cx="40" cy="40" r="28" fill={COLORS.surfaceElevated} />
+        <Circle cx="40" cy="40" r="36" fill={COLORS.accentMuted} />
+        <Circle cx="40" cy="40" r="28" fill={COLORS.bgPanel} />
         <Path
           d="M46 18 L26 42 L36 42 L32 62 L54 36 L42 36 L48 18 Z"
           fill="url(#peekGrad)"

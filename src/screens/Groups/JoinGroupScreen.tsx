@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, TextInput, Keyboard, Animated } from 'react-native';
-import { Text } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { COLORS, SIZES, SHADOWS } from '@/constants/theme';
+import { Text, Button, Icon } from '@/components/ui';
+import { COLORS, SHADOWS, RADIUS, SPACE, SIZES } from '@/constants/theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { z } from 'zod';
-import { joinGroupByCode } from '@/services/groupService';
+import { useJoinGroup } from '@/hooks/useGroups';
+import { isAppError } from '@/services/errors';
 
 const CODE_LENGTH = 6;
 const joinSchema = z.string().length(CODE_LENGTH).regex(/^[A-HJ-NP-Z2-9]+$/, "Invalid characters. Use A-Z, 2-9 (no 0, 1, I, O)");
@@ -14,26 +14,42 @@ const joinSchema = z.string().length(CODE_LENGTH).regex(/^[A-HJ-NP-Z2-9]+$/, "In
 export default function JoinGroupScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const joinGroup = useJoinGroup();
   const [code, setCode] = useState(route.params?.code || '');
   const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const inputRef = useRef<TextInput>(null);
 
   const handleJoin = async (codeToJoin = code) => {
-    if (isSubmitting) return;
+    if (joinGroup.isPending) return;
     const result = joinSchema.safeParse(codeToJoin);
     if (result.success) {
-      setIsSubmitting(true);
       setError('');
-      try {
-        const group = await joinGroupByCode(codeToJoin);
-        navigation.replace('GroupHome', { groupId: group.id });
-      } catch (err: any) {
-        setIsSubmitting(false);
-        setError(err.message || 'Failed to join group');
-      }
+      joinGroup.mutate(codeToJoin, {
+        onSuccess: (group) => {
+          navigation.replace('GroupHome', { groupId: group.id });
+        },
+        onError: (err) => {
+          if (isAppError(err)) {
+            switch (err.code) {
+              case 'NOT_FOUND':
+                setError('Invalid invite code.');
+                break;
+              case 'GROUP_FULL':
+                setError('This pact is at capacity (max 6 members).');
+                break;
+              case 'ALREADY_MEMBER':
+                setError('You are already a member of this pact.');
+                break;
+              default:
+                setError(err.message);
+            }
+          } else {
+            setError((err as Error).message || 'Failed to join group');
+          }
+        },
+      });
     } else {
       setError(result.error.issues[0].message);
     }
@@ -127,7 +143,7 @@ export default function JoinGroupScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text variant="headingMd">← Back</Text>
+          <Text variant="headingMd">â† Back</Text>
         </TouchableOpacity>
       </View>
 
@@ -168,17 +184,17 @@ export default function JoinGroupScreen() {
           onPress={() => setIsScanning(true)}
         >
           <View style={styles.qrButtonInner}>
-            <Text style={styles.qrEmoji}>📷</Text>
+            <Text style={styles.qrEmoji}>ðŸ“·</Text>
             <Text style={styles.qrText}>Scan QR Code</Text>
           </View>
         </TouchableOpacity>
       </View>
 
       <View style={styles.footer}>
-        <Button 
-          label={isSubmitting ? "Joining..." : "Join Pact"} 
-          onPress={() => handleJoin(code)} 
-          disabled={isSubmitting || code.length < CODE_LENGTH}
+        <Button
+          label={joinGroup.isPending ? 'Joining...' : 'Join Pact'}
+          onPress={() => handleJoin(code)}
+          disabled={joinGroup.isPending || code.length < CODE_LENGTH}
         />
       </View>
     </View>
@@ -188,7 +204,7 @@ export default function JoinGroupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.surfaceBase,
+    backgroundColor: COLORS.bgBase,
   },
   header: {
     paddingTop: 60,
@@ -222,7 +238,7 @@ const styles = StyleSheet.create({
   segmentSlot: {
     width: 48,
     height: 56,
-    backgroundColor: COLORS.surfaceDark,
+    backgroundColor: COLORS.bgBase,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -230,17 +246,17 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.05)', // Inset look
   },
   segmentSlotActive: {
-    borderColor: COLORS.brandPrimary,
+    borderColor: COLORS.accentBlue,
   },
   segmentSlotFilled: {
-    backgroundColor: COLORS.surfaceBase,
+    backgroundColor: COLORS.bgBase,
     borderColor: 'transparent',
     ...SHADOWS.softElevation,
   },
   segmentText: {
     fontSize: 24,
     fontFamily: 'RobotoMono-Bold',
-    color: COLORS.textDisplay,
+    color: COLORS.textPrimary,
   },
   errorText: {
     color: COLORS.danger,
@@ -256,7 +272,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.surfaceDark,
+    backgroundColor: COLORS.bgBase,
   },
   dividerText: {
     marginHorizontal: 16,
@@ -271,7 +287,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.surfaceBase,
+    backgroundColor: COLORS.bgBase,
     paddingVertical: 16,
     borderRadius: SIZES.radiusButton,
     ...SHADOWS.softElevation,
@@ -314,7 +330,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 40,
     height: 40,
-    borderColor: COLORS.brandPrimary,
+    borderColor: COLORS.accentBlue,
   },
   topLeft: { top: 0, left: 0, borderTopWidth: 4, borderLeftWidth: 4 },
   topRight: { top: 0, right: 0, borderTopWidth: 4, borderRightWidth: 4 },

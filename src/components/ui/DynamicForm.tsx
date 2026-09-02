@@ -69,18 +69,29 @@ const generateSchema = (fields: FieldDefinition[]) => {
 export function DynamicForm({ fields, onSubmit, submitLabel = 'Submit', isSubmitting = false }: DynamicFormProps) {
   const schema = useMemo(() => generateSchema(fields), [fields]);
 
-  const { control, handleSubmit, formState: { errors } } = useForm({
+  const { control, handleSubmit, watch, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: fields.reduce((acc, f) => {
       if (f.type === 'multiselect') acc[f.id] = [];
       else if (f.type === 'toggle') acc[f.id] = false;
+      else if (f.type === 'number' || f.type === 'stars' || f.type === 'emoji-scale') acc[f.id] = undefined;
+      else acc[f.id] = '';
       return acc;
     }, {} as any),
   });
 
+  // Watch all field values so we can evaluate showIf conditions live.
+  const values = watch();
+
+  // Filter fields by showIf. A field with no showIf always renders.
+  const visibleFields = fields.filter((f) => {
+    if (!f.showIf) return true;
+    return values[f.showIf.fieldId] === f.showIf.equals;
+  });
+
   return (
     <View style={styles.formContainer}>
-      {fields.map(field => (
+      {visibleFields.map(field => (
         <FieldRenderer
           key={field.id}
           field={field}
@@ -91,7 +102,7 @@ export function DynamicForm({ fields, onSubmit, submitLabel = 'Submit', isSubmit
 
       <View style={styles.submitWrapper}>
         <Button
-          label={isSubmitting ? 'Submitting…' : submitLabel}
+          label={isSubmitting ? 'Submittingâ€¦' : submitLabel}
           onPress={handleSubmit(onSubmit)}
           disabled={isSubmitting}
           fullWidth
@@ -108,10 +119,10 @@ function FieldRenderer({ field, control, error }: { field: FieldDefinition; cont
       <View style={styles.labelRow}>
         <Text variant="headingSm" style={styles.label}>
           {field.label}
-          {field.required && <Text variant="headingSm" color={COLORS.accent}> *</Text>}
+          {field.required && <Text variant="headingSm" color={COLORS.accentBlue}> *</Text>}
         </Text>
         {field.unit ? (
-          <Text variant="caption" color={COLORS.inkSecondary}>({field.unit})</Text>
+          <Text variant="caption" color={COLORS.textSecondary}>({field.unit})</Text>
         ) : null}
       </View>
 
@@ -142,6 +153,7 @@ function renderField(field: FieldDefinition, onChange: any, value: any) {
           value={value ?? ''}
           onChangeText={onChange}
           placeholder={`Enter ${field.label.toLowerCase()}`}
+          maxLength={field.maxLength}
         />
       );
     case 'number':
@@ -151,6 +163,7 @@ function renderField(field: FieldDefinition, onChange: any, value: any) {
           onChangeText={(t) => onChange(t === '' ? undefined : Number(t))}
           placeholder="0"
           keyboardType="numeric"
+          maxLength={field.maxLength}
         />
       );
     case 'multiselect':
@@ -172,7 +185,7 @@ function renderField(field: FieldDefinition, onChange: any, value: any) {
               >
                 <Text
                   variant="label"
-                  color={isSelected ? COLORS.inkInverse : COLORS.inkPrimary}
+                  color={isSelected ? COLORS.bgBase : COLORS.textPrimary}
                 >
                   {opt}
                 </Text>
@@ -192,7 +205,7 @@ function renderField(field: FieldDefinition, onChange: any, value: any) {
             >
               <Text
                 variant="label"
-                color={value === opt ? COLORS.inkInverse : COLORS.inkPrimary}
+                color={value === opt ? COLORS.bgBase : COLORS.textPrimary}
               >
                 {opt}
               </Text>
@@ -203,13 +216,13 @@ function renderField(field: FieldDefinition, onChange: any, value: any) {
     case 'toggle':
       return (
         <View style={styles.toggleRow}>
-          <Text variant="bodySm" color={COLORS.inkSecondary}>
+          <Text variant="bodySm" color={COLORS.textSecondary}>
             {value ? 'On' : 'Off'}
           </Text>
           <Switch
             value={!!value}
             onValueChange={onChange}
-            trackColor={{ false: COLORS.hairlineStrong, true: COLORS.accent }}
+            trackColor={{ false: COLORS.hairlineStrong, true: COLORS.accentBlue }}
             thumbColor="#FFFFFF"
             ios_backgroundColor={COLORS.hairlineStrong}
           />
@@ -243,7 +256,7 @@ function RatingRow({ type, value, onChange }: { type: 'stars' | 'emoji-scale'; v
             <Icon
               name={ratings[num - 1]}
               size={type === 'emoji-scale' ? 30 : 28}
-              color={active ? COLORS.accent : COLORS.inkTertiary}
+              color={active ? COLORS.accentBlue : COLORS.textTertiary}
               bold={active && isIcon}
             />
           </RatingCell>
@@ -284,7 +297,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: COLORS.inkDisplay,
+    color: COLORS.textPrimary,
   },
   chipContainer: {
     flexDirection: 'row',
@@ -295,13 +308,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.bgPanel,
     borderWidth: 1,
     borderColor: COLORS.hairline,
   },
   formChipActive: {
-    backgroundColor: COLORS.inkDisplay,
-    borderColor: COLORS.inkDisplay,
+    backgroundColor: COLORS.textPrimary,
+    borderColor: COLORS.textPrimary,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -312,7 +325,7 @@ const styles = StyleSheet.create({
   ratingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.surfaceSunken,
+    backgroundColor: COLORS.bgSurface,
     padding: 6,
     borderRadius: RADIUS.lg,
   },
@@ -324,7 +337,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
   },
   ratingCellActive: {
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.bgPanel,
     ...SHADOWS.card,
   },
   errorText: {

@@ -1,18 +1,26 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import QRCode from 'react-native-qrcode-svg';
 import { Text, Input, Button, Icon, IconName, VoltMark } from '@/components/ui';
 import { COLORS, RADIUS, SHADOWS, SPACE } from '@/constants/theme';
 import { useNavigation } from '@react-navigation/native';
 import { z } from 'zod';
-import { createGroup } from '@/services/groupService';
 import { GroupVibe, ActivitySeed } from '@/types';
 import { PRESET_ACTIVITIES } from '@/constants/activityTemplates';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
+import { useCreateGroup } from '@/hooks/useGroups';
+import { isAppError } from '@/services/errors';
 
 const EMOJI_LIST: IconName[] = ['lightning', 'flame', 'crown', 'target', 'rocket', 'star', 'sparkle', 'medal', 'trophy', 'fire', 'book', 'barbell'];
-const VIBE_ICONS: Record<string, IconName> = { hardcore: 'flame', relaxed: 'leaf' };
+const VIBE_ICONS: Record<GroupVibe, IconName> = {
+  hustle:  'flame',
+  relaxed: 'leaf',
+  study:   'book',
+  gym:     'barbell',
+  custom:  'sparkle',
+};
 const ACTIVITY_ICONS: Record<string, IconName> = {
   gym: 'barbell',
   study: 'book',
@@ -33,8 +41,8 @@ const step4Schema = z.object({
   goal: z.string().max(200, 'Max 200 characters').optional(),
 });
 
-const VIBES = [
-  { id: 'hardcore', title: 'Hardcore', desc: 'Miss a day and the group streak dies. True accountability.' },
+const VIBES: Array<{ id: GroupVibe; title: string; desc: string }> = [
+  { id: 'hustle',  title: 'Hustle',  desc: 'Miss a day and the group streak dies. True accountability.' },
   { id: 'relaxed', title: 'Relaxed', desc: 'Skip days allowed, individual streaks preserved.' },
 ];
 
@@ -49,19 +57,20 @@ const generateSafeCode = () => {
 
 export default function CreateGroupScreen() {
   const navigation = useNavigation<any>();
+  const createGroup = useCreateGroup();
   const [step, setStep] = useState(1);
   const [groupName, setGroupName] = useState('');
   const [groupNameError, setGroupNameError] = useState('');
   const [icon, setIcon] = useState<IconName>('lightning');
   const [showIconPicker, setShowIconPicker] = useState(false);
-  
+
   const [selectedActivities, setSelectedActivities] = useState<string[]>(['gym']);
   const [activityError, setActivityError] = useState('');
-  const [selectedVibe, setSelectedVibe] = useState<string>('hardcore');
-  
+  const [selectedVibe, setSelectedVibe] = useState<GroupVibe | null>('hustle');
+
   const [goal, setGoal] = useState('');
   const [goalError, setGoalError] = useState('');
-  
+
   const [inviteCode, setInviteCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdGroupId, setCreatedGroupId] = useState<string | null>(null);
@@ -96,42 +105,49 @@ export default function CreateGroupScreen() {
         return;
       }
       setGoalError('');
-      
+
       setIsSubmitting(true);
-      
+
       const templates: ActivitySeed[] = selectedActivities.map(id => {
         const act = PRESET_ACTIVITIES.find(a => a.id === id);
         return {
           name: act?.name || 'Habit',
-          icon: act?.icon || '⚡',
-          color: act?.color || COLORS.brandPrimary,
+          icon: act?.icon || 'lightning',
+          color: act?.color || COLORS.accentBlue,
           templateKey: act?.id || null,
           templateFields: act?.templateFields || [],
           frequency: 'daily',
           frequencyDays: [0, 1, 2, 3, 4, 5, 6],
-          requirePhoto: act?.requirePhoto || false
+          requirePhoto: act?.requirePhoto || false,
         };
       });
 
-      createGroup({
-        name: groupName,
-        emoji: icon,
-        vibe: selectedVibe as GroupVibe,
-        goalDescription: goal || null
-      }, templates).then(group => {
-        setIsSubmitting(false);
-        setInviteCode(group.inviteCode);
-        setCreatedGroupId(group.id);
-        setStep(5);
-      }).catch(_err => {
-        // Fallback for guest mode / offline testing
-        const fallbackCode = generateSafeCode();
-        const fallbackId = 'group-' + Date.now();
-        setIsSubmitting(false);
-        setInviteCode(fallbackCode);
-        setCreatedGroupId(fallbackId);
-        setStep(5);
-      });
+      createGroup.mutate(
+        {
+          input: {
+            name: groupName,
+            emoji: icon,
+            vibe: selectedVibe,
+            goalDescription: goal || null,
+          },
+          templates,
+        },
+        {
+          onSuccess: (group) => {
+            setIsSubmitting(false);
+            setInviteCode(group.inviteCode);
+            setCreatedGroupId(group.id);
+            setStep(5);
+          },
+          onError: (err) => {
+            setIsSubmitting(false);
+            const message = isAppError(err)
+              ? err.message
+              : (err as Error).message;
+            Alert.alert('Could not create pact', message);
+          },
+        }
+      );
       return;
     }
 
@@ -173,7 +189,7 @@ export default function CreateGroupScreen() {
     } catch {}
     try {
       await Share.share({
-        message: `Join my StreakPact group "${groupName}"! 💪\nInvite Code: ${inviteCode}\nstreakpact://join/${inviteCode}`,
+        message: `Join my StreakPact group "${groupName}"!\nInvite Code: ${inviteCode}\nstreakpact://join/${inviteCode}`,
       });
     } catch (error) {
       console.log('Share error', error);
@@ -197,9 +213,9 @@ export default function CreateGroupScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => step > 1 ? setStep(step - 1) : navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={20} color={COLORS.inkDisplay} />
+          <Icon name="arrow-left" size={20} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <Text variant="eyebrow" color={COLORS.inkSecondary}>Step {step} of 5</Text>
+        <Text variant="eyebrow" color={COLORS.textSecondary}>Step {step} of 5</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -211,9 +227,9 @@ export default function CreateGroupScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {step === 1 && (
           <View style={styles.stepContainer}>
-            <Text variant="eyebrow" color={COLORS.inkSecondary} style={styles.eyebrow}>Step 1</Text>
-            <Text variant="displaySm" color={COLORS.inkDisplay} style={styles.title}>Name your pact</Text>
-            <Text variant="body" color={COLORS.inkSecondary} style={styles.subtitle}>Make it something motivating.</Text>
+            <Text variant="eyebrow" color={COLORS.textSecondary} style={styles.eyebrow}>Step 1</Text>
+            <Text variant="displaySm" color={COLORS.textPrimary} style={styles.title}>Name your pact</Text>
+            <Text variant="body" color={COLORS.textSecondary} style={styles.subtitle}>Make it something motivating.</Text>
 
             <View style={styles.iconSection}>
               <TouchableOpacity
@@ -224,7 +240,7 @@ export default function CreateGroupScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <Icon name={icon} size={36} color={COLORS.accent} bold />
+                <Icon name={icon} size={36} color={COLORS.accentBlue} bold />
               </TouchableOpacity>
 
               {showIconPicker && (
@@ -239,7 +255,7 @@ export default function CreateGroupScreen() {
                         setShowIconPicker(false);
                       }}
                     >
-                      <Icon name={e} size={22} color={e === icon ? COLORS.accent : COLORS.inkPrimary} bold={e === icon} />
+                      <Icon name={e} size={22} color={e === icon ? COLORS.accentBlue : COLORS.textPrimary} bold={e === icon} />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -259,9 +275,9 @@ export default function CreateGroupScreen() {
 
         {step === 2 && (
           <View style={styles.stepContainer}>
-            <Text variant="eyebrow" color={COLORS.inkSecondary} style={styles.eyebrow}>Step 2</Text>
-            <Text variant="displaySm" color={COLORS.inkDisplay} style={styles.title}>Choose activities</Text>
-            <Text variant="body" color={COLORS.inkSecondary} style={styles.subtitle}>
+            <Text variant="eyebrow" color={COLORS.textSecondary} style={styles.eyebrow}>Step 2</Text>
+            <Text variant="displaySm" color={COLORS.textPrimary} style={styles.title}>Choose activities</Text>
+            <Text variant="body" color={COLORS.textSecondary} style={styles.subtitle}>
               Select the habits you want to track ({selectedActivities.length} chosen).
             </Text>
 
@@ -285,8 +301,8 @@ export default function CreateGroupScreen() {
                     <Icon name={actIcon} size={22} color={act.color} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text variant="headingMd" color={isSelected ? COLORS.accent : COLORS.inkDisplay}>{act.name}</Text>
-                    <Text variant="caption" color={COLORS.inkSecondary}>{act.description}</Text>
+                    <Text variant="headingMd" color={isSelected ? COLORS.accentBlue : COLORS.textPrimary}>{act.name}</Text>
+                    <Text variant="caption" color={COLORS.textSecondary}>{act.description}</Text>
                   </View>
                   <View style={[styles.checkBox, isSelected ? styles.checkBoxActive : null]}>
                     {isSelected && <Icon name="check" size={14} color="#FFFFFF" bold />}
@@ -299,9 +315,9 @@ export default function CreateGroupScreen() {
 
         {step === 3 && (
           <View style={styles.stepContainer}>
-            <Text variant="eyebrow" color={COLORS.inkSecondary} style={styles.eyebrow}>Step 3</Text>
-            <Text variant="displaySm" color={COLORS.inkDisplay} style={styles.title}>Set the vibe</Text>
-            <Text variant="body" color={COLORS.inkSecondary} style={styles.subtitle}>How strict is this pact?</Text>
+            <Text variant="eyebrow" color={COLORS.textSecondary} style={styles.eyebrow}>Step 3</Text>
+            <Text variant="displaySm" color={COLORS.textPrimary} style={styles.title}>Set the vibe</Text>
+            <Text variant="body" color={COLORS.textSecondary} style={styles.subtitle}>How strict is this pact?</Text>
 
             {VIBES.map((vibe) => {
               const isSelected = selectedVibe === vibe.id;
@@ -316,12 +332,12 @@ export default function CreateGroupScreen() {
                   }}
                   activeOpacity={0.85}
                 >
-                  <View style={[styles.actIconBox, { backgroundColor: vibe.id === 'hardcore' ? COLORS.accentTint : COLORS.positiveTint }]}>
-                    <Icon name={vibeIcon} size={22} color={vibe.id === 'hardcore' ? COLORS.accent : COLORS.positive} />
+                  <View style={[styles.actIconBox, { backgroundColor: vibe.id === 'hustle' ? COLORS.accentTint : 'rgba(46, 157, 106, 0.12)' }]}>
+                    <Icon name={VIBE_ICONS[vibe.id]} size={22} color={vibe.id === 'hustle' ? COLORS.accentBlue : COLORS.positive} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text variant="headingMd" color={isSelected ? COLORS.accent : COLORS.inkDisplay}>{vibe.title}</Text>
-                    <Text variant="caption" color={COLORS.inkSecondary}>{vibe.desc}</Text>
+                    <Text variant="headingMd" color={isSelected ? COLORS.accentBlue : COLORS.textPrimary}>{vibe.title}</Text>
+                    <Text variant="caption" color={COLORS.textSecondary}>{vibe.desc}</Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -331,9 +347,9 @@ export default function CreateGroupScreen() {
 
         {step === 4 && (
           <View style={styles.stepContainer}>
-            <Text variant="eyebrow" color={COLORS.inkSecondary} style={styles.eyebrow}>Step 4</Text>
-            <Text variant="displaySm" color={COLORS.inkDisplay} style={styles.title}>Group goal</Text>
-            <Text variant="body" color={COLORS.inkSecondary} style={styles.subtitle}>What are you working toward? (Optional)</Text>
+            <Text variant="eyebrow" color={COLORS.textSecondary} style={styles.eyebrow}>Step 4</Text>
+            <Text variant="displaySm" color={COLORS.textPrimary} style={styles.title}>Group goal</Text>
+            <Text variant="body" color={COLORS.textSecondary} style={styles.subtitle}>What are you working toward? (Optional)</Text>
 
             <Input
               label="Goal"
@@ -351,20 +367,32 @@ export default function CreateGroupScreen() {
 
         {step === 5 && (
           <View style={styles.stepContainer}>
-            <Text variant="eyebrow" color={COLORS.inkSecondary} style={styles.eyebrow}>Step 5</Text>
-            <Text variant="displaySm" color={COLORS.inkDisplay} style={styles.title}>Invite friends</Text>
-            <Text variant="body" color={COLORS.inkSecondary} style={styles.subtitle}>Share this code with your friends.</Text>
+            <Text variant="eyebrow" color={COLORS.textSecondary} style={styles.eyebrow}>Step 5</Text>
+            <Text variant="displaySm" color={COLORS.textPrimary} style={styles.title}>Invite friends</Text>
+            <Text variant="body" color={COLORS.textSecondary} style={styles.subtitle}>Share this code with your friends.</Text>
 
             <TouchableOpacity
               style={styles.codeContainer}
               onPress={handleCopyCode}
               activeOpacity={0.85}
             >
-              <Text variant="caption" color={COLORS.inkSecondary} style={styles.codeLabel}>
+              <Text variant="caption" color={COLORS.textSecondary} style={styles.codeLabel}>
                 {copiedCode ? 'COPIED TO CLIPBOARD' : 'TAP CODE TO COPY'}
               </Text>
               <Text style={styles.codeDisplay}>{inviteCode}</Text>
             </TouchableOpacity>
+
+            <View style={styles.qrWrap}>
+              <QRCode
+                value={`streakpact://invite/${inviteCode}`}
+                size={160}
+                backgroundColor="transparent"
+                color={COLORS.textPrimary}
+              />
+              <Text variant="caption" color={COLORS.textTertiary} style={styles.qrHint}>
+                Scan to join
+              </Text>
+            </View>
 
             <Button
               label="Share invite link"
@@ -380,7 +408,7 @@ export default function CreateGroupScreen() {
 
       <View style={styles.footer}>
         <Button
-          label={isSubmitting ? 'Creating…' : (step === 5 ? 'Enter pact' : step === 4 ? 'Create group' : 'Next')}
+          label={isSubmitting ? 'Creating...' : (step === 5 ? 'Enter pact' : step === 4 ? 'Create group' : 'Next')}
           onPress={handleNext}
           disabled={isSubmitting}
           fullWidth
@@ -401,7 +429,7 @@ function hexToTint(hex: string, alpha: number) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surfaceBase },
+  container: { flex: 1, backgroundColor: COLORS.bgBase },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -412,14 +440,14 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.bgPanel,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: COLORS.hairline,
   },
   progressBarBg: {
-    height: 4, backgroundColor: COLORS.surfaceSunken, width: '100%',
+    height: 4, backgroundColor: COLORS.bgSurface, width: '100%',
   },
-  progressBarFill: { height: '100%', backgroundColor: COLORS.accent },
+  progressBarFill: { height: '100%', backgroundColor: COLORS.accentBlue },
   content: { padding: SPACE.xl, paddingBottom: 120 },
   stepContainer: { flex: 1 },
   eyebrow: { marginBottom: 6 },
@@ -430,13 +458,13 @@ const styles = StyleSheet.create({
   iconPicker: {
     width: 84, height: 84, borderRadius: RADIUS.lg,
     justifyContent: 'center', alignItems: 'center',
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.bgPanel,
     borderWidth: 1, borderColor: COLORS.hairline,
   },
   iconDropdown: {
     position: 'absolute',
     top: 96,
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.bgPanel,
     padding: 12,
     borderRadius: RADIUS.lg,
     flexDirection: 'row',
@@ -457,11 +485,11 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: COLORS.hairline,
   },
   cardOutset: {
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.bgPanel,
   },
   cardInset: {
-    backgroundColor: COLORS.surfaceSunken,
-    borderColor: COLORS.accent,
+    backgroundColor: COLORS.bgSurface,
+    borderColor: COLORS.accentBlue,
   },
   actIconBox: {
     width: 44, height: 44, borderRadius: RADIUS.md,
@@ -473,24 +501,33 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   checkBoxActive: {
-    backgroundColor: COLORS.accent, borderColor: COLORS.accent,
+    backgroundColor: COLORS.accentBlue, borderColor: COLORS.accentBlue,
   },
   codeContainer: {
     padding: 28, borderRadius: RADIUS.lg,
     alignItems: 'center', marginBottom: 16,
-    backgroundColor: COLORS.surfaceSunken,
+    backgroundColor: COLORS.bgSurface,
     borderWidth: 1, borderColor: COLORS.hairline,
   },
   codeLabel: { marginBottom: 12, letterSpacing: 2 },
   codeDisplay: {
     fontFamily: 'JetBrainsMono-Bold',
     fontSize: 40,
-    color: COLORS.inkDisplay,
+    color: COLORS.textPrimary,
     letterSpacing: 8,
+  },
+  qrWrap: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    marginBottom: 12,
+  },
+  qrHint: {
+    marginTop: 8,
+    letterSpacing: 0.5,
   },
   footer: {
     padding: SPACE.xl, paddingBottom: 36,
     borderTopWidth: 1, borderTopColor: COLORS.hairline,
-    backgroundColor: COLORS.surfaceBase,
+    backgroundColor: COLORS.bgBase,
   },
 });

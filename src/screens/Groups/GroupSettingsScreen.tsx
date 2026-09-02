@@ -1,29 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Switch, Share, Alert, Pressable } from 'react-native';
-import { Text } from '@/components/ui/Text';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { COLORS, SIZES, SHADOWS } from '@/constants/theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text, Button, Input, Icon } from '@/components/ui';
+import { COLORS, SIZES, SHADOWS, RADIUS, SPACE } from '@/constants/theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
+import { useGroup, useUpdateGroup, useRegenerateInviteCode, useDeleteGroup, useLeaveGroup, useGroupStreak } from '@/hooks';
+import { isAppError } from '@/services/errors';
+import { useAuthStore } from '@/store/useAuthStore';
 
 // Custom tactile switch
-const TactileSwitch = ({ value, onValueChange }: { value: boolean, onValueChange: (val: boolean) => void }) => {
+const TactileSwitch = ({ value, onValueChange, disabled }: { value: boolean; onValueChange: (val: boolean) => void; disabled?: boolean }) => {
   return (
     <Pressable
       onPress={() => {
+        if (disabled) return;
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onValueChange(!value);
       }}
       style={[
         styles.switchTrack,
-        value ? styles.switchTrackActive : styles.switchTrackInactive
+        value ? styles.switchTrackActive : styles.switchTrackInactive,
+        disabled ? { opacity: 0.4 } : null,
       ]}
     >
       <View style={[
         styles.switchThumb,
-        value ? styles.switchThumbActive : styles.switchThumbInactive
+        value ? styles.switchThumbActive : styles.switchThumbInactive,
       ]} />
     </Pressable>
   );
@@ -32,231 +36,314 @@ const TactileSwitch = ({ value, onValueChange }: { value: boolean, onValueChange
 export default function GroupSettingsScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const groupId = route.params?.groupId || 'H3X2B9';
-  const isAdmin = route.params?.isAdmin ?? true;
+  const groupId: string = route.params?.groupId;
+  const { user } = useAuthStore();
 
-  const [groupName, setGroupName] = useState('Morning Runners');
-  const [groupEmoji, setGroupEmoji] = useState('🏃');
-  const [requirePhoto, setRequirePhoto] = useState(true);
-  const [groupStreak, setGroupStreak] = useState(false);
+  const { data: groupData } = useGroup(groupId);
+  const group = groupData?.group;
+  const members = groupData?.members ?? [];
+  const isAdmin = !!members.find((m: any) => m.userId === user?.id && m.role === 'admin');
+
+  const updateGroup = useUpdateGroup();
+  const regenerateCode = useRegenerateInviteCode();
+  const deleteGroup = useDeleteGroup();
+  const leaveGroup = useLeaveGroup();
+
+  // Local form state (initialised from the loaded group)
+  const [groupName, setGroupName] = useState('');
+  const [groupEmoji, setGroupEmoji] = useState('');
+  const [requirePhoto, setRequirePhoto] = useState(false);
+  const [groupStreakEnabled, setGroupStreakEnabled] = useState(false);
+
+  useEffect(() => {
+    if (group) {
+      setGroupName(group.name);
+      setGroupEmoji(group.emoji);
+      setRequirePhoto(false); // would come from the group if we had a column
+      setGroupStreakEnabled(group.groupStreakEnabled);
+    }
+  }, [group?.id, group?.name, group?.emoji, group?.groupStreakEnabled]);
+
+  const handleSave = () => {
+    if (!group) return;
+    updateGroup.mutate(
+      {
+        groupId: group.id,
+        updates: {
+          name: groupName.trim() || group.name,
+          emoji: groupEmoji || group.emoji,
+          groupStreakEnabled,
+        },
+      },
+      {
+        onSuccess: () => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        },
+        onError: (err) => {
+          Alert.alert('Save failed', isAppError(err) ? err.message : (err as Error).message);
+        },
+      }
+    );
+  };
 
   const handleCopyCode = async () => {
-    await Clipboard.setStringAsync(groupId);
+    if (!group) return;
+    await Clipboard.setStringAsync(group.inviteCode);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert("Copied", "Invite code copied to clipboard");
+    Alert.alert('Copied', 'Invite code copied to clipboard');
   };
 
   const handleShareCode = async () => {
+    if (!group) return;
     try {
       await Share.share({
-        message: `Join my StreakPact group! 💪 Code: ${groupId} or tap: https://streakpact.app/join/${groupId}`,
+        message: `Join my StreakPact "${group.name}"! Code: ${group.inviteCode}\nstreakpact://invite/${group.inviteCode}`,
       });
-    } catch (error: any) {
-      Alert.alert(error.message);
+    } catch (err) {
+      Alert.alert((err as Error).message);
     }
   };
 
-  const handleLeaveGroup = () => {
-    Alert.alert("Leave Group", "Are you sure you want to leave this group?", [
-      { text: "Cancel", style: "cancel" },
-      { 
-        text: "Leave", 
-        style: "destructive", 
-        onPress: () => navigation.navigate('Main', { screen: 'Groups' }) 
-      }
+  const handleRegenerate = () => {
+    if (!group) return;
+    Alert.alert(
+      'Regenerate invite code?',
+      'The old code will stop working immediately. Existing members keep their access.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Regenerate',
+          style: 'destructive',
+          onPress: () =>
+            regenerateCode.mutate(group.id, {
+              onError: (e) => Alert.alert('Error', isAppError(e) ? e.message : (e as Error).message),
+            }),
+        },
+      ]
+    );
+  };
+
+  const handleLeave = () => {
+    Alert.alert('Leave group?', 'You will lose your streak in this pact.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Leave',
+        style: 'destructive',
+        onPress: () =>
+          leaveGroup.mutate(groupId, {
+            onSuccess: () => navigation.navigate('Main', { screen: 'Groups' }),
+            onError: (e) => {
+              if (isAppError(e) && e.code === 'NOT_ALLOWED') {
+                Alert.alert('Cannot leave', 'Promote another admin before leaving.');
+              } else {
+                Alert.alert('Error', (e as Error).message);
+              }
+            },
+          }),
+      },
     ]);
   };
 
-  const handleDeleteGroup = () => {
-    Alert.alert("Delete Group", "Are you sure you want to delete this group forever? This cannot be undone.", [
-      { text: "Cancel", style: "cancel" },
-      { 
-        text: "Delete", 
-        style: "destructive", 
-        onPress: () => navigation.navigate('Main', { screen: 'Groups' }) 
-      }
-    ]);
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete pact?',
+      'This cannot be undone. All submissions, streaks, and member data will be lost.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () =>
+            deleteGroup.mutate(groupId, {
+              onSuccess: () => navigation.navigate('Main', { screen: 'Groups' }),
+              onError: (e) => Alert.alert('Error', isAppError(e) ? e.message : (e as Error).message),
+            }),
+        },
+      ]
+    );
   };
+
+  if (!group) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingWrap}>
+          <Text variant="body" color={COLORS.textSecondary}>Loadingâ€¦</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text variant="headingMd">← Back</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={6} style={styles.backBtn}>
+          <Icon name="arrow-left" size={20} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <Text variant="headingMd">Settings</Text>
+        <Text variant="eyebrow" color={COLORS.textSecondary}>Settings</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        
+
         {/* Invite Code Section */}
         <View style={styles.section}>
-          <Text variant="headingMd" style={styles.sectionTitle}>Invite Code</Text>
+          <Text variant="eyebrow" color={COLORS.textSecondary} style={styles.sectionEyebrow}>
+            Invite code
+          </Text>
           <View style={styles.codeContainer}>
-            <Text style={styles.codeText}>{groupId}</Text>
+            <Text style={styles.codeText}>{group.inviteCode}</Text>
           </View>
           <View style={styles.actionRow}>
-            <Button label="Copy Code" variant="secondary" onPress={handleCopyCode} style={{ flex: 1, marginRight: 8 }} />
-            <Button label="Share Invite" onPress={handleShareCode} style={{ flex: 1, marginLeft: 8 }} />
+            <Button label="Copy code" variant="secondary" onPress={handleCopyCode} style={{ flex: 1, marginRight: 8 }} />
+            <Button label="Share invite" onPress={handleShareCode} style={{ flex: 1, marginLeft: 8 }} />
           </View>
         </View>
 
         {isAdmin ? (
           <>
             <View style={styles.section}>
-              <Text variant="headingMd" style={styles.sectionTitle}>Group Info</Text>
+              <Text variant="eyebrow" color={COLORS.textSecondary} style={styles.sectionEyebrow}>
+                Group info
+              </Text>
               <Input
-                label="Group Name"
+                label="Name"
                 value={groupName}
                 onChangeText={setGroupName}
                 maxLength={30}
               />
+              <View style={{ height: 12 }} />
               <Input
-                label="Emoji Icon"
+                label="Icon (emoji or text)"
                 value={groupEmoji}
                 onChangeText={setGroupEmoji}
-                maxLength={2}
-                style={{ marginTop: 16 }}
+                maxLength={4}
+              />
+              <View style={{ height: 16 }} />
+              <Button
+                label={updateGroup.isPending ? 'Savingâ€¦' : 'Save changes'}
+                onPress={handleSave}
+                disabled={updateGroup.isPending}
+                loading={updateGroup.isPending}
+                fullWidth
               />
             </View>
 
             <View style={styles.section}>
-              <Text variant="headingMd" style={styles.sectionTitle}>Rules</Text>
-              
+              <Text variant="eyebrow" color={COLORS.textSecondary} style={styles.sectionEyebrow}>
+                Rules
+              </Text>
+
               <View style={styles.settingRow}>
                 <View style={styles.settingTextContainer}>
-                  <Text style={styles.settingLabel}>Require Photo Proof</Text>
-                  <Text style={styles.settingSubLabel}>Users must upload a photo to submit</Text>
+                  <Text variant="bodyMedium" color={COLORS.textPrimary}>Require photo proof</Text>
+                  <Text variant="caption" color={COLORS.textSecondary}>Per-activity (set on each activity)</Text>
                 </View>
-                <TactileSwitch value={requirePhoto} onValueChange={setRequirePhoto} />
+                <TactileSwitch value={false} onValueChange={() => {}} disabled />
               </View>
 
               <View style={styles.settingRow}>
                 <View style={styles.settingTextContainer}>
-                  <Text style={styles.settingLabel}>Group Streak (Hardcore)</Text>
-                  <Text style={styles.settingSubLabel}>If one person misses, everyone's streak resets</Text>
+                  <Text variant="bodyMedium" color={COLORS.textPrimary}>Group streak</Text>
+                  <Text variant="caption" color={COLORS.textSecondary}>If one person misses, everyone's streak resets</Text>
                 </View>
-                <TactileSwitch value={groupStreak} onValueChange={setGroupStreak} />
+                <TactileSwitch value={groupStreakEnabled} onValueChange={setGroupStreakEnabled} />
               </View>
             </View>
 
             <View style={styles.section}>
-              <Text variant="headingMd" style={styles.sectionTitle}>Danger Zone</Text>
-              <Button label="Regenerate Invite Code" variant="secondary" onPress={() => Alert.alert("Regenerated")} style={{ marginBottom: 16 }} />
-              <Button label="Delete Group" variant="danger" onPress={handleDeleteGroup} />
+              <Text variant="eyebrow" color={COLORS.danger} style={styles.sectionEyebrow}>
+                Danger zone
+              </Text>
+              <Button
+                label="Regenerate invite code"
+                variant="secondary"
+                onPress={handleRegenerate}
+                disabled={regenerateCode.isPending}
+                fullWidth
+                style={{ marginBottom: 12 }}
+              />
+              <Button
+                label="Delete pact"
+                variant="danger"
+                onPress={handleDelete}
+                disabled={deleteGroup.isPending}
+                fullWidth
+              />
             </View>
           </>
         ) : (
           <View style={styles.section}>
-            <Text variant="headingMd" style={styles.sectionTitle}>Danger Zone</Text>
-            <Button label="Leave Group" variant="danger" onPress={handleLeaveGroup} />
+            <Text variant="eyebrow" color={COLORS.danger} style={styles.sectionEyebrow}>
+              Danger zone
+            </Text>
+            <Button
+              label="Leave pact"
+              variant="danger"
+              onPress={handleLeave}
+              disabled={leaveGroup.isPending}
+              fullWidth
+            />
           </View>
         )}
-        
+
         <View style={{ height: 40 }} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.surfaceBase,
-  },
+  container: { flex: 1, backgroundColor: COLORS.bgBase },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: SIZES.padding,
-    paddingBottom: 20,
-    backgroundColor: COLORS.surfaceBase,
-    zIndex: 10,
-    shadowColor: 'rgba(0,0,0,0.05)',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 1,
-    shadowRadius: 20,
-    elevation: 5,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  content: {
-    padding: SIZES.padding,
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
   },
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    marginBottom: 16,
-    color: COLORS.textPrimary,
-  },
+  content: { paddingHorizontal: SPACE.xl, paddingBottom: 60 },
+  section: { marginBottom: 28 },
+  sectionEyebrow: { marginBottom: 12 },
   codeContainer: {
-    backgroundColor: COLORS.surfaceSunken,
-    borderRadius: 20,
+    backgroundColor: COLORS.bgSurface,
+    borderRadius: RADIUS.lg,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
-    ...SHADOWS.softElevation,
+    marginBottom: 12,
+    borderWidth: 1, borderColor: COLORS.hairline,
   },
   codeText: {
-    fontFamily: 'RobotoMono-Bold',
-    fontSize: 48,
-    color: COLORS.brandPrimary,
-    letterSpacing: 4,
+    fontFamily: 'JetBrainsMono-Bold',
+    fontSize: 40,
+    color: COLORS.textPrimary,
+    letterSpacing: 8,
   },
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
+  actionRow: { flexDirection: 'row' },
   settingRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
   },
-  settingTextContainer: {
-    flex: 1,
-    paddingRight: 16,
-  },
-  settingLabel: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: COLORS.textPrimary,
-    marginBottom: 4,
-  },
-  settingSubLabel: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: COLORS.textSecondary,
-  },
+  settingTextContainer: { flex: 1, paddingRight: 16 },
+  settingLabel: { color: COLORS.textPrimary, fontSize: 15, fontFamily: 'Inter-Medium' },
+  settingSubLabel: { color: COLORS.textSecondary, fontSize: 12, marginTop: 2 },
   switchTrack: {
-    width: 52,
-    height: 32,
-    borderRadius: 16,
-    padding: 2,
-    justifyContent: 'center',
-    ...SHADOWS.softElevation,
+    width: 50, height: 30, borderRadius: 15,
+    padding: 2, justifyContent: 'center',
   },
-  switchTrackActive: {
-    backgroundColor: COLORS.success,
-  },
-  switchTrackInactive: {
-    backgroundColor: COLORS.surfaceDark,
-  },
+  switchTrackActive: { backgroundColor: COLORS.accentBlue },
+  switchTrackInactive: { backgroundColor: COLORS.hairlineStrong },
   switchThumb: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.surfaceBase,
-    ...SHADOWS.softElevation,
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: '#FFFFFF',
   },
-  switchThumbActive: {
-    transform: [{ translateX: 20 }],
-  },
-  switchThumbInactive: {
-    transform: [{ translateX: 0 }],
-  },
+  switchThumbActive: { transform: [{ translateX: 20 }] },
+  switchThumbInactive: { transform: [{ translateX: 0 }] },
 });

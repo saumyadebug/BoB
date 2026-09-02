@@ -22,15 +22,15 @@ interface TodayBannerProps {
 /**
  * Horizontal scroll of today's pact activities.
  * - Pill shape with activity color tint
- * - Small status dot (color only — paired with label for a11y)
+ * - Small status dot (color only â€” paired with label for a11y)
  * - Tap = direct submission
  */
 export function TodayBanner({ activities, onActivityPress }: TodayBannerProps) {
   return (
     <View style={styles.container}>
       <View style={styles.titleRow}>
-        <Text variant="eyebrow" color={COLORS.inkSecondary}>Today</Text>
-        <Text variant="caption" color={COLORS.inkTertiary}>
+        <Text variant="eyebrow" color={COLORS.textSecondary}>Today</Text>
+        <Text variant="caption" color={COLORS.textTertiary}>
           {activities.filter(a => a.status === 'submitted').length}/{activities.length} done
         </Text>
       </View>
@@ -55,7 +55,7 @@ export function TodayBanner({ activities, onActivityPress }: TodayBannerProps) {
               <Icon name={act.icon} size={20} color={act.color} />
             </View>
             <View style={styles.pillText}>
-              <Text variant="label" color={COLORS.inkDisplay} numberOfLines={1}>{act.name}</Text>
+              <Text variant="label" color={COLORS.textPrimary} numberOfLines={1}>{act.name}</Text>
               <Text variant="caption" color={statusColor(act.status)}>
                 {statusLabel(act.status)}
               </Text>
@@ -71,9 +71,9 @@ export function TodayBanner({ activities, onActivityPress }: TodayBannerProps) {
 function statusColor(s: TodayStatus) {
   switch (s) {
     case 'submitted': return COLORS.positive;
-    case 'pending':   return COLORS.accent;
+    case 'pending':   return COLORS.accentRed;
     case 'missed':    return COLORS.danger;
-    case 'rest':      return COLORS.inkTertiary;
+    case 'rest':      return COLORS.textTertiary;
   }
 }
 
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.bgPanel,
     paddingLeft: 8,
     paddingRight: 14,
     paddingVertical: 8,

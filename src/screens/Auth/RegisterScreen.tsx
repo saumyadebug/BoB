@@ -1,62 +1,69 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Text, Input, Button } from '@/components/ui';
+import { Text, Input, Button, PasswordStrengthMeter } from '@/components/ui';
 import { COLORS } from '@/constants/theme';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { firebaseAuth } from '@/services/firebase';
+import { registerSchema, RegisterFormValues, evaluatePasswordStrength } from '@/validation/auth';
+import { supabase } from '@/services/supabase';
+import { signInWithGoogle, isGoogleConfigured } from '@/services/googleAuth';
 import { useAuthStore } from '@/store/useAuthStore';
 import { storage } from '@/utils/storage';
 import { VoltMark } from '@/components/brand/VoltMark';
+import { AppError, isAppError } from '@/services/errors';
 
-const registerSchema = z.object({
-  email: z.string().email('Enter a valid email'),
-  password: z.string().min(6, 'At least 6 characters'),
-  confirmPassword: z.string(),
-}).refine(d => d.password === d.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'],
-});
+type RegisterForm = RegisterFormValues;
 
-type RegisterForm = z.infer<typeof registerSchema>;
+function mapSupabaseAuthError(err: any): AppError {
+  const message = err?.message?.toLowerCase() ?? '';
+  if (message.includes('already registered') || message.includes('already been registered')) {
+    return new AppError('EMAIL_IN_USE', 'An account with this email already exists.');
+  }
+  if (message.includes('weak password') || message.includes('password should be')) {
+    return new AppError('WEAK_PASSWORD', 'Choose a stronger password.');
+  }
+  return new AppError('NETWORK', err?.message || 'Sign up failed.');
+}
 
 export default function RegisterScreen({ navigation }: any) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { setUser } = useAuthStore();
+  const { setSession } = useAuthStore();
 
-  const { control, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
+  const { control, handleSubmit, watch, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: { email: '', password: '', confirmPassword: '' },
   });
+  const passwordValue = watch('password');
+  const passwordStrength = evaluatePasswordStrength(passwordValue);
 
   const onSubmit = async (data: RegisterForm) => {
     setIsLoading(true);
     setAuthError(null);
     try {
-      const userCredential = await createUserWithEmailAndPassword(firebaseAuth, data.email, data.password);
-      const token = await userCredential.user.getIdToken();
-      await storage.setItem('streakpact_jwt', token);
-      setUser({
-        id: userCredential.user.uid,
-        email: userCredential.user.email || '',
-        displayName: 'You',
-        username: 'You',
-        avatarUrl: null,
-        level: 1, xp: 0, shieldsAvailable: 3,
-        totalSubmissions: 0, longestStreak: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      const { data: signUpData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: { display_name: data.email.split('@')[0] },
+        },
       });
-      navigation.replace('SetupProfile');
-    } catch (error: any) {
-      if (error.code === 'auth/email-already-in-use') {
-        setAuthError('An account with this email already exists.');
+      if (error) throw mapSupabaseAuthError(error);
+
+      if (signUpData.session) {
+        await storage.setItem('streakpact_jwt', signUpData.session.access_token);
+        setSession(signUpData.session);
+        navigation.replace('SetupProfile');
       } else {
-        setAuthError(error.message || 'Sign up failed.');
+        // Email confirmation required â€” surface a message.
+        setAuthError('Check your email to verify your account, then sign in.');
+      }
+    } catch (e: any) {
+      if (isAppError(e)) {
+        setAuthError(e.message);
+      } else {
+        setAuthError(e?.message || 'Sign up failed.');
       }
     } finally {
       setIsLoading(false);
@@ -79,8 +86,8 @@ export default function RegisterScreen({ navigation }: any) {
           </View>
 
           <View style={styles.header}>
-            <Text variant="headingLg" color={COLORS.inkDisplay}>Create your account</Text>
-            <Text variant="body" color={COLORS.inkSecondary} style={styles.subtitle}>
+            <Text variant="headingLg" color={COLORS.textPrimary}>Create your account</Text>
+            <Text variant="body" color={COLORS.textSecondary} style={styles.subtitle}>
               It takes about thirty seconds.
             </Text>
           </View>
@@ -108,16 +115,24 @@ export default function RegisterScreen({ navigation }: any) {
               control={control}
               name="password"
               render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Password"
-                  placeholder="At least 6 characters"
-                  secureTextEntry
-                  hint="6+ characters, mix it up"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                  error={errors.password?.message}
-                />
+                <View>
+                  <Input
+                    label="Password"
+                    placeholder="At least 6 characters"
+                    secureTextEntry
+                    hint="6+ characters, mix it up"
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                    error={errors.password?.message}
+                  />
+                  {value.length > 0 && (
+                    <PasswordStrengthMeter
+                      strength={passwordStrength.strength}
+                      label={passwordStrength.label}
+                    />
+                  )}
+                </View>
               )}
             />
             <View style={{ height: 14 }} />
@@ -144,7 +159,7 @@ export default function RegisterScreen({ navigation }: any) {
             ) : null}
 
             <Button
-              label={isLoading ? 'Creating account…' : 'Create account'}
+              label={isLoading ? 'Creating accountâ€¦' : 'Create account'}
               onPress={handleSubmit(onSubmit)}
               disabled={isLoading}
               loading={isLoading}
@@ -155,9 +170,9 @@ export default function RegisterScreen({ navigation }: any) {
           </View>
 
           <View style={styles.footer}>
-            <Text variant="body" color={COLORS.inkSecondary}>Have an account? </Text>
+            <Text variant="body" color={COLORS.textSecondary}>Have an account? </Text>
             <Pressable onPress={() => navigation.navigate('Login')}>
-              <Text variant="bodyMedium" color={COLORS.accent}>Sign in</Text>
+              <Text variant="bodyMedium" color={COLORS.accentBlue}>Sign in</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -167,7 +182,7 @@ export default function RegisterScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surfaceBase },
+  container: { flex: 1, backgroundColor: COLORS.bgBase },
   kb: { flex: 1 },
   scroll: {
     paddingHorizontal: 24,

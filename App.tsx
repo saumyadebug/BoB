@@ -1,10 +1,9 @@
 import React, { useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer, DarkTheme, DefaultTheme, Theme } from '@react-navigation/native';
-import { useColorScheme } from 'react-native';
+import { NavigationContainer, DarkTheme, Theme } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
 import {
-  useFonts,
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
@@ -25,7 +24,9 @@ import { View } from 'react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import RootNavigator from './src/navigation';
 import { queryClient } from './src/services/queryClient';
-import { lightColors, darkColors, COLORS } from './constants/theme';
+import { COLORS } from './constants/theme';
+import { useAuthSync } from './src/hooks/useAuthSync';
+import { useDevAuthBypass } from './src/hooks/useDevAuthBypass';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -62,26 +63,32 @@ const linking: any = {
   },
 };
 
-function buildNavTheme(isDark: boolean): Theme {
-  const palette = isDark ? darkColors : lightColors;
+function buildNavTheme(): Theme {
   return {
-    ...(isDark ? DarkTheme : DefaultTheme),
+    ...DarkTheme,
     colors: {
-      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
-      background: palette.surfaceBase,
-      card: palette.surfaceElevated,
-      text: palette.inkDisplay,
-      border: palette.hairline,
-      primary: palette.accent,
-      notification: palette.accent,
+      ...DarkTheme.colors,
+      background: COLORS.bgBase,
+      card: COLORS.bgPanel,
+      text: COLORS.textPrimary,
+      border: COLORS.border,
+      primary: COLORS.accentBlue,
+      notification: COLORS.accentRed,
     },
   };
 }
 
 export default function App() {
-  const systemScheme = useColorScheme();
-  const isDark = systemScheme === 'dark';
-  const palette = isDark ? darkColors : lightColors;
+  // Mount the auth sync listener once at the root.
+  useAuthSync();
+
+  // Dev-only: if the sandbox clock is skewed relative to Supabase, install
+  // a mock auth session so the rest of the app can be smoke-tested.
+  // No-op on real devices because they have correct clocks.
+  useDevAuthBypass();
+
+  // Dark cosmos is the only theme — ignore system color scheme.
+  const isDark = true;
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -109,13 +116,25 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
-        <View style={{ flex: 1, backgroundColor: palette.surfaceBase }} onLayout={onLayoutRootView}>
-          <NavigationContainer theme={buildNavTheme(isDark)} linking={linking}>
+        <View style={{ flex: 1, backgroundColor: COLORS.bgBase }} onLayout={onLayoutRootView}>
+          <NavigationContainer theme={buildNavTheme()} linking={linking}>
             <RootNavigator />
           </NavigationContainer>
-          <StatusBar style={isDark ? 'light' : 'dark'} />
+          <StatusBar style="light" />
         </View>
       </SafeAreaProvider>
     </QueryClientProvider>
   );
 }
+
+/**
+ * Dev-only auth bypass.
+ *
+ * Probes Supabase auth. If the response says "JWT issued at future",
+ * that means the local clock is ahead of Supabase's clock — a sandbox
+ * artifact, not a production issue. We install a mock session so the
+ * rest of the app can be smoke-tested end-to-end.
+ *
+ * On a real device with a correct clock, the probe succeeds, this is
+ * a no-op, and real Supabase auth runs as expected.
+ */

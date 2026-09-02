@@ -11,11 +11,11 @@ export interface StatusIndicatorProps {
 }
 
 const STATUS_COLOR: Record<StatusType, string> = {
-  pending: COLORS.inkTertiary,
+  pending: COLORS.textTertiary,
   submitted: COLORS.positive,
   missed: COLORS.danger,
   rest: '#A5A5AA',
-  active: COLORS.accent,
+  active: COLORS.accentBlue,
 };
 
 const STATUS_GLOW: Record<StatusType, string> = {
@@ -23,7 +23,7 @@ const STATUS_GLOW: Record<StatusType, string> = {
   submitted: COLORS.positive,
   missed: COLORS.danger,
   rest: 'transparent',
-  active: COLORS.accent,
+  active: COLORS.accentBlue,
 };
 
 export function StatusIndicator({ status, size = 12, withRing = false }: StatusIndicatorProps) {
@@ -47,7 +47,7 @@ export function StatusIndicator({ status, size = 12, withRing = false }: StatusI
         withRing
           ? {
               borderWidth: 2,
-              borderColor: COLORS.surfaceBase,
+              borderColor: COLORS.bgBase,
             }
           : null,
       ]}

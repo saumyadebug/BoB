@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Pressable, StyleSheet, ViewStyle, StyleProp, View } from 'react-native';
+import { Pressable, StyleSheet, ViewStyle, StyleProp, View, Platform } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -11,6 +11,9 @@ import { Text } from './Text';
 import { Icon, IconName } from './Icon';
 import * as Haptics from 'expo-haptics';
 
+const isWeb = Platform.OS === 'web';
+const AnimatedPressable = isWeb ? Pressable : Animated.createAnimatedComponent(Pressable);
+
 export interface ChipProps {
   label: string;
   icon?: IconName;
@@ -19,8 +22,6 @@ export interface ChipProps {
   variant?: 'default' | 'accent';
   style?: StyleProp<ViewStyle>;
 }
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function Chip({ label, icon, isSelected = false, onPress, variant = 'default', style }: ChipProps) {
   const press = useSharedValue(0);
@@ -53,8 +54,8 @@ export function Chip({ label, icon, isSelected = false, onPress, variant = 'defa
       style={[
         styles.container,
         {
-          backgroundColor: selected ? COLORS.inkDisplay : COLORS.surfaceElevated,
-          borderColor: selected ? COLORS.inkDisplay : COLORS.hairline,
+          backgroundColor: selected ? COLORS.textPrimary : COLORS.bgPanel,
+          borderColor: selected ? COLORS.textPrimary : COLORS.hairline,
         },
         style,
         pressStyle,
@@ -66,12 +67,12 @@ export function Chip({ label, icon, isSelected = false, onPress, variant = 'defa
         <Icon
           name={icon}
           size={15}
-          color={selected ? COLORS.inkInverse : COLORS.inkPrimary}
+          color={selected ? COLORS.bgBase : COLORS.textPrimary}
         />
       ) : null}
       <Text
         variant="label"
-        color={selected ? COLORS.inkInverse : COLORS.inkPrimary}
+        color={selected ? COLORS.bgBase : COLORS.textPrimary}
         style={styles.label}
       >
         {label}

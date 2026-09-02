@@ -1,24 +1,17 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, Pressable, Image, Alert } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Pressable, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, Input, Button, Icon } from '@/components/ui';
 import { COLORS, RADIUS } from '@/constants/theme';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { profileSchema, ProfileFormValues, USERNAME_MAX } from '@/validation/auth';
+import { useUsernameAvailability } from '@/hooks/useCurrentUser';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '@/store/useAuthStore';
 import { userService } from '@/services/userService';
 
-const profileSchema = z.object({
-  username: z
-    .string()
-    .min(3, 'At least 3 characters')
-    .max(20, 'Maximum 20 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Letters, numbers, underscore only'),
-});
-
-type ProfileForm = z.infer<typeof profileSchema>;
+type ProfileForm = ProfileFormValues;
 
 export default function SetupProfileScreen({ navigation }: any) {
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -30,6 +23,8 @@ export default function SetupProfileScreen({ navigation }: any) {
     resolver: zodResolver(profileSchema),
     defaultValues: { username: user?.username || '' },
   });
+  const watchedUsername = useWatch({ control, name: 'username', defaultValue: '' });
+  const availability = useUsernameAvailability(watchedUsername || '');
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -45,9 +40,25 @@ export default function SetupProfileScreen({ navigation }: any) {
     setIsLoading(true);
     setUsernameError(null);
     try {
+      // Block if username is taken
+      if (availability.data === false) {
+        setUsernameError('That username is already taken.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Try the local store's user first; if that's null, fall back to
+      // the Supabase session's user_metadata.display_name (set at sign-up).
+      const session = useAuthStore.getState().session;
+      const fallbackDisplayName =
+        user?.displayName ||
+        session?.user?.user_metadata?.display_name ||
+        session?.user?.email?.split('@')[0] ||
+        data.username;
+
       const saved = await userService.ensureCurrentUser({
         username: data.username,
-        displayName: user?.displayName || data.username,
+        displayName: fallbackDisplayName,
         avatarUrl: avatar || user?.avatarUrl || null,
       });
       setUser(saved);
@@ -67,11 +78,11 @@ export default function SetupProfileScreen({ navigation }: any) {
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text variant="eyebrow" color={COLORS.inkSecondary} style={styles.step}>Step 1 of 2</Text>
-            <Text variant="displaySm" color={COLORS.inkDisplay} style={styles.title}>
+            <Text variant="eyebrow" color={COLORS.textSecondary} style={styles.step}>Step 1 of 2</Text>
+            <Text variant="displaySm" color={COLORS.textPrimary} style={styles.title}>
               Set up your profile
             </Text>
-            <Text variant="body" color={COLORS.inkSecondary} style={styles.subtitle}>
+            <Text variant="body" color={COLORS.textSecondary} style={styles.subtitle}>
               Pick a username your pact will recognize.
             </Text>
           </View>
@@ -81,8 +92,8 @@ export default function SetupProfileScreen({ navigation }: any) {
               <Image source={{ uri: avatar }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Icon name="camera" size={28} color={COLORS.inkSecondary} />
-                <Text variant="caption" color={COLORS.inkSecondary} style={styles.avatarHint}>
+                <Icon name="camera" size={28} color={COLORS.textSecondary} />
+                <Text variant="caption" color={COLORS.textSecondary} style={styles.avatarHint}>
                   Add photo
                 </Text>
               </View>
@@ -93,23 +104,35 @@ export default function SetupProfileScreen({ navigation }: any) {
             <Controller
               control={control}
               name="username"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Username"
-                  placeholder="iron_man"
-                  leadingIcon="user"
-                  autoCapitalize="none"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                  error={errors.username?.message || usernameError || undefined}
-                  hint="3-20 chars · letters, numbers, underscore"
-                />
-              )}
+              render={({ field: { onChange, onBlur, value } }) => {
+                const showingAvailability =
+                  value && value.length >= 3 && !errors.username && !availability.isLoading;
+                const available = showingAvailability && availability.data === true;
+                const taken = showingAvailability && availability.data === false;
+                return (
+                  <Input
+                    label="Username"
+                    placeholder="iron_man"
+                    leadingIcon="user"
+                    autoCapitalize="none"
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                    error={errors.username?.message || usernameError || undefined}
+                    hint={
+                      taken
+                        ? 'Username is taken'
+                        : available
+                          ? 'Username is available'
+                          : `3-${USERNAME_MAX} chars · letters, numbers, underscore`
+                    }
+                  />
+                );
+              }}
             />
 
             <Button
-              label={isLoading ? 'Saving…' : 'Continue'}
+              label={isLoading ? 'Saving...' : 'Continue'}
               onPress={handleSubmit(onSubmit)}
               disabled={isLoading}
               loading={isLoading}
@@ -126,7 +149,7 @@ export default function SetupProfileScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surfaceBase },
+  container: { flex: 1, backgroundColor: COLORS.bgBase },
   kb: { flex: 1, paddingHorizontal: 24 },
   content: { flex: 1, justifyContent: 'center' },
   header: { marginBottom: 32 },
@@ -146,7 +169,7 @@ const styles = StyleSheet.create({
     width: 108,
     height: 108,
     borderRadius: 54,
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.bgPanel,
     borderWidth: 1,
     borderColor: COLORS.hairline,
     borderStyle: 'dashed',

@@ -60,11 +60,11 @@ export function StreakCounter({ count, label = 'Day Streak', size = 'medium', ic
         <Icon
           name={icon}
           size={iconSize}
-          color={variant === 'accent' ? COLORS.accent : COLORS.inkDisplay}
+          color={variant === 'accent' ? COLORS.accentBlue : COLORS.textPrimary}
         />
         <Text
           variant={numVariant}
-          color={variant === 'accent' ? COLORS.accent : COLORS.inkDisplay}
+          color={variant === 'accent' ? COLORS.accentBlue : COLORS.textPrimary}
           style={{ fontSize: numFontSize, lineHeight: numFontSize * 1.1 }}
         >
           {count}
@@ -72,7 +72,7 @@ export function StreakCounter({ count, label = 'Day Streak', size = 'medium', ic
         {!isSmall && (
           <Text
             variant="caption"
-            color={COLORS.inkTertiary}
+            color={COLORS.textTertiary}
             style={styles.label}
           >
             {label}
@@ -93,7 +93,7 @@ export function StreakCounter({ count, label = 'Day Streak', size = 'medium', ic
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: COLORS.surfaceSunken,
+    backgroundColor: COLORS.bgSurface,
     borderRadius: RADIUS.md,
     paddingHorizontal: 12,
     paddingVertical: 8,

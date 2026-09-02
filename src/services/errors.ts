@@ -9,11 +9,18 @@
 
 export type AppErrorCode =
   | 'NOT_FOUND'
+  | 'NOT_AUTHENTICATED'
+  | 'USERNAME_TAKEN'
+  | 'USERNAME_INVALID'
+  | 'EMAIL_IN_USE'
+  | 'INVALID_CREDENTIALS'
+  | 'WEAK_PASSWORD'
   | 'GROUP_FULL'
   | 'ALREADY_MEMBER'
   | 'NOT_ADMIN'
   | 'NOT_ALLOWED'
-  | 'NETWORK';
+  | 'NETWORK'
+  | 'STORAGE';
 
 // ─── AppError ────────────────────────────────────────────────────────────────
 

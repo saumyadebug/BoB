@@ -35,7 +35,7 @@ export function Skeleton({ width = '100%', height = 20, borderRadius = RADIUS.sm
   return (
     <Animated.View
       style={[
-        { width, height, borderRadius, backgroundColor: COLORS.surfaceSunken },
+        { width, height, borderRadius, backgroundColor: COLORS.bgSurface },
         animatedStyle,
         style,
       ]}
@@ -102,7 +102,7 @@ export function CalendarRowSkeleton() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.bgPanel,
     borderRadius: RADIUS.lg,
     padding: 18,
     marginBottom: 12,

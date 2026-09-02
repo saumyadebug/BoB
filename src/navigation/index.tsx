@@ -18,46 +18,58 @@ import ComparativeScreen from '@/screens/Groups/ComparativeScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+/**
+ * Root navigator + auth gate.
+ *
+ * - When useAuthStore.isAuthenticated is false → show Auth stack
+ *   (Splash decides whether to skip Onboarding based on AsyncStorage flag)
+ * - When true → show Main tabs
+ *
+ * The auth state is driven entirely by useAuthSync (mounted in App.tsx),
+ * which listens to supabase.auth.onAuthStateChange. This navigator does
+ * not manage sessions — it just reads the result.
+ */
 export default function RootNavigator() {
-  const { isAuthenticated } = useAuthStore(); 
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isLoading = useAuthStore((s) => s.isLoading);
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {!isAuthenticated ? (
+      {!isAuthenticated || isLoading ? (
         <Stack.Screen name="Auth" component={AuthNavigator} />
       ) : (
         <>
           <Stack.Screen name="Main" component={MainTabNavigator} />
-          
+
           {/* Group Stack */}
-          <Stack.Screen 
-            name="CreateGroup" 
-            component={CreateGroupScreen} 
+          <Stack.Screen
+            name="CreateGroup"
+            component={CreateGroupScreen}
             options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
           />
-          <Stack.Screen 
-            name="JoinGroup" 
-            component={JoinGroupScreen} 
+          <Stack.Screen
+            name="JoinGroup"
+            component={JoinGroupScreen}
             options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
           />
-          <Stack.Screen 
-            name="GroupHome" 
-            component={GroupHomeScreen} 
+          <Stack.Screen
+            name="GroupHome"
+            component={GroupHomeScreen}
             options={{ animation: 'slide_from_right' }}
           />
-          <Stack.Screen 
-            name="GroupSettings" 
-            component={GroupSettingsScreen} 
+          <Stack.Screen
+            name="GroupSettings"
+            component={GroupSettingsScreen}
             options={{ animation: 'slide_from_right' }}
           />
-          <Stack.Screen 
-            name="CreateActivity" 
-            component={CreateActivityScreen} 
+          <Stack.Screen
+            name="CreateActivity"
+            component={CreateActivityScreen}
             options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
           />
-          <Stack.Screen 
-            name="ActivityDetail" 
-            component={ActivityDetailScreen} 
+          <Stack.Screen
+            name="ActivityDetail"
+            component={ActivityDetailScreen}
             options={{ animation: 'slide_from_right' }}
           />
           <Stack.Screen

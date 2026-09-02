@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Pressable, PressableProps, StyleSheet, ViewStyle, StyleProp, View } from 'react-native';
+import { Pressable, PressableProps, StyleSheet, ViewStyle, StyleProp, View, Platform } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -13,7 +13,12 @@ import { Text } from './Text';
 import { Icon } from './Icon';
 import * as Haptics from 'expo-haptics';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
+const isWeb = Platform.OS === 'web';
+// On web, fall back to a regular Pressable — Animated.createAnimatedComponent
+// requires the native Reanimated module which isn't linked on web.
+const AnimatedPressable = isWeb ? Pressable : Animated.createAnimatedComponent(Pressable);
+
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline' | 'pill' | 'signal' | 'bracketed';
 type Size = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends Omit<PressableProps, 'style' | 'children'> {
@@ -29,8 +34,6 @@ export interface ButtonProps extends Omit<PressableProps, 'style' | 'children'> 
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
 }
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function Button({
   label,
@@ -84,11 +87,12 @@ export function Button({
   });
 
   const palette = getPalette(variant);
-  const padding = getPadding(size);
-  const radius = isPill ? RADIUS.pill : (size === 'sm' ? RADIUS.sm : RADIUS.md);
+  const padding = variant === 'bracketed' ? { paddingVertical: 6, paddingHorizontal: 8 } : getPadding(size);
+  const radius = variant === 'bracketed' ? RADIUS.xs : (isPill ? RADIUS.pill : (size === 'sm' ? RADIUS.sm : RADIUS.md));
   const iconSize = size === 'lg' ? 22 : size === 'sm' ? 16 : 18;
-  const textVariant = size === 'lg' ? 'headingMd' : size === 'sm' ? 'bodySm' : 'bodyMedium';
-  const showShadow = variant === 'primary' || variant === 'danger' || variant === 'secondary';
+  const textVariant = variant === 'bracketed' ? 'monoSm' : (size === 'lg' ? 'headingSm' : size === 'sm' ? 'bodySm' : 'bodyMedium');
+
+  const formattedLabel = variant === 'bracketed' ? `[ ${displayLabel.toUpperCase()} ]` : displayLabel;
 
   return (
     <AnimatedPressable
@@ -102,12 +106,11 @@ export function Button({
         {
           backgroundColor: palette.bg,
           borderRadius: radius,
-          borderWidth: variant === 'outline' || variant === 'ghost' ? 1 : 0,
-          borderColor: variant === 'outline' ? COLORS.hairlineStrong : 'transparent',
+          borderWidth: (variant === 'outline' || variant === 'secondary' || variant === 'pill') ? 1 : 0,
+          borderColor: (palette as any).borderColor ?? 'transparent',
           opacity: disabled ? 0.45 : 1,
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
         },
-        showShadow ? (variant === 'primary' || variant === 'danger' ? SHADOWS.cta : SHADOWS.card) : null,
         animatedStyle,
         style,
       ]}
@@ -126,8 +129,8 @@ export function Button({
         ) : loading ? (
           <LoadingDots color={palette.fg} />
         ) : (
-          <Text variant={textVariant} color={palette.fg} style={styles.label}>
-            {displayLabel}
+          <Text variant={textVariant} color={palette.fg} style={[styles.label, variant === 'bracketed' && styles.bracketedLabel]}>
+            {formattedLabel}
           </Text>
         )}
         {trailingIcon && !loading && !iconOnly && (
@@ -172,20 +175,31 @@ function LoadingDots({ color }: { color: string }) {
 
 function getPadding(size: Size) {
   switch (size) {
-    case 'sm': return { paddingVertical: 10, paddingHorizontal: 16 };
-    case 'lg': return { paddingVertical: 18, paddingHorizontal: 28 };
+    case 'sm': return { paddingVertical: 8, paddingHorizontal: 14 };
+    case 'lg': return { paddingVertical: 14, paddingHorizontal: 24 };
     case 'md':
-    default: return { paddingVertical: 14, paddingHorizontal: 22 };
+    default: return { paddingVertical: 10, paddingHorizontal: 18 };
   }
 }
 
 function getPalette(variant: Variant) {
   switch (variant) {
-    case 'primary':   return { bg: COLORS.accent, fg: '#FFFFFF' };
-    case 'secondary': return { bg: COLORS.surfaceElevated, fg: COLORS.inkDisplay };
-    case 'ghost':     return { bg: 'transparent', fg: COLORS.inkPrimary };
-    case 'danger':    return { bg: COLORS.danger, fg: '#FFFFFF' };
-    case 'outline':   return { bg: 'transparent', fg: COLORS.inkDisplay };
+    // Primary = solid blue.
+    case 'primary':   return { bg: COLORS.accentBlue, fg: '#FFFFFF' };
+    // Pill = translucent dark capsule with fine 1px border.
+    case 'pill':      return { bg: 'rgba(255,255,255,0.07)', fg: COLORS.textPrimary, borderColor: 'rgba(255,255,255,0.12)' };
+    // Signal = solid electric red capsule (e.g. active TUE, LIVE!).
+    case 'signal':    return { bg: COLORS.accentRed, fg: '#FFFFFF' };
+    // Bracketed = technical monospace minimal text action.
+    case 'bracketed': return { bg: 'transparent', fg: COLORS.textSecondary, borderColor: 'transparent' };
+    // Secondary = transparent + 1px border-strong + text-secondary.
+    case 'secondary': return { bg: 'transparent', fg: COLORS.textSecondary, borderColor: COLORS.borderStrong };
+    // Ghost = transparent, no border, secondary text.
+    case 'ghost':     return { bg: 'transparent', fg: COLORS.textSecondary, borderColor: 'transparent' };
+    // Danger = red (only for live/alert, per spec).
+    case 'danger':    return { bg: COLORS.accentRed, fg: '#FFFFFF' };
+    // Outline = transparent + border-strong + primary text.
+    case 'outline':   return { bg: 'transparent', fg: COLORS.textPrimary, borderColor: COLORS.borderStrong };
   }
 }
 
@@ -201,6 +215,10 @@ const styles = StyleSheet.create({
   },
   label: {
     letterSpacing: 0.1,
+  },
+  bracketedLabel: {
+    letterSpacing: 1.2,
+    fontSize: 11,
   },
   dots: {
     flexDirection: 'row',

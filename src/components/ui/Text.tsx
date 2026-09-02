@@ -4,9 +4,11 @@ import { TYPOGRAPHY, COLORS } from '@/constants/theme';
 
 export type TextVariant =
   | 'displayLg' | 'displayMd' | 'displaySm'
+  | 'headline' | 'headlineSm' | 'subheading'
   | 'headingLg' | 'headingMd' | 'headingSm'
   | 'body' | 'bodyMedium' | 'bodySm'
   | 'label' | 'caption' | 'eyebrow'
+  | 'monoLg' | 'monoMd' | 'monoSm'
   | 'numericXl' | 'numericLg' | 'numericMd' | 'numericSm'
   | 'digitalDisplay';
 

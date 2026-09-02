@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Pressable, View, StyleSheet } from 'react-native';
+import { Pressable, View, StyleSheet, Platform } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -26,7 +26,8 @@ export interface GroupCardProps {
   onLongPress?: () => void;
 }
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const isWeb = Platform.OS === 'web';
+const AnimatedPressable = isWeb ? Pressable : Animated.createAnimatedComponent(Pressable);
 
 export function GroupCard({
   name,
@@ -69,10 +70,10 @@ export function GroupCard({
             <Icon name={icon} size={24} color={iconColor} />
           </View>
           <View style={styles.titleArea}>
-            <Text variant="headingMd" color={COLORS.inkDisplay} numberOfLines={1}>
+            <Text variant="headingMd" color={COLORS.textPrimary} numberOfLines={1}>
               {name}
             </Text>
-            <Text variant="caption" color={COLORS.inkSecondary}>
+            <Text variant="caption" color={COLORS.textSecondary}>
               {activitiesCount} {activitiesCount === 1 ? 'activity' : 'activities'}
             </Text>
           </View>
@@ -94,11 +95,11 @@ export function GroupCard({
             size={28}
           />
           <View style={styles.streakPill}>
-            <Icon name="flame" size={14} color={COLORS.accent} />
-            <Text variant="numericSm" color={COLORS.inkDisplay}>
+            <Icon name="flame" size={14} color={COLORS.accentBlue} />
+            <Text variant="numericSm" color={COLORS.textPrimary}>
               {streakDays}
             </Text>
-            <Text variant="caption" color={COLORS.inkTertiary}>d</Text>
+            <Text variant="caption" color={COLORS.textTertiary}>d</Text>
           </View>
         </View>
       </Card>
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
   streakPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceSunken,
+    backgroundColor: COLORS.bgSurface,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: RADIUS.pill,

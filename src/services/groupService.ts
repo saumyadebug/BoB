@@ -1,7 +1,5 @@
 import type { PostgrestError } from '@supabase/supabase-js';
-import { addDoc, collection } from 'firebase/firestore';
 import { supabase } from '@/services/supabase';
-import { firebaseAuth, firestore, COLLECTIONS } from '@/services/firebase';
 import { useAuthStore } from '@/store/useAuthStore';
 import { AppError, isAppError } from '@/services/errors';
 import {
@@ -17,7 +15,7 @@ import {
 
 /**
  * Group service — group CRUD, membership & activities against Supabase.
- * Real-time notification mirrors are written to Firestore on join.
+ * Real-time notification mirrors are written to the `notifications` table.
  */
 
 const LOG_PREFIX = '[groupService]';
@@ -107,8 +105,8 @@ function handleServiceError(operation: string, error: unknown): never {
 // ─── Internals ───────────────────────────────────────────────────────────────
 
 function getCurrentUserId(): string {
-  const uid = useAuthStore.getState().user?.id ?? firebaseAuth.currentUser?.uid;
-  if (!uid) throw new AppError('NOT_FOUND', 'No authenticated user');
+  const uid = useAuthStore.getState().session?.user?.id;
+  if (!uid) throw new AppError('NOT_AUTHENTICATED', 'No authenticated user');
   return uid;
 }
 
@@ -264,7 +262,7 @@ export async function joinGroupByCode(code: string): Promise<Group> {
       .eq('id', group.id);
     if (incrementError) throw incrementError;
 
-    await mirrorNewMemberNotification(userId, group);
+    await createJoinNotification(userId, group);
 
     return { ...group, memberCount: group.memberCount + 1 };
   } catch (error) {
@@ -272,23 +270,25 @@ export async function joinGroupByCode(code: string): Promise<Group> {
   }
 }
 
-async function mirrorNewMemberNotification(userId: string, group: Group): Promise<void> {
+async function createJoinNotification(userId: string, group: Group): Promise<void> {
   try {
     const username =
       useAuthStore.getState().user?.username ||
       useAuthStore.getState().user?.displayName ||
       'Someone';
 
-    await addDoc(collection(firestore, COLLECTIONS.notifications(group.adminId)), {
+    const { error } = await supabase.from('notifications').insert({
+      user_id: group.adminId,
       type: 'new_group_member',
       title: 'New member!',
       body: `${username} joined ${group.emoji} ${group.name}`,
-      deepLink: `streakpact://group/${group.id}`,
-      isRead: false,
-      createdAt: new Date().toISOString(),
+      deep_link: `streakpact://group/${group.id}`,
     });
-  } catch (mirrorError) {
-    console.error(`${LOG_PREFIX} joinGroupByCode: notification mirror failed:`, mirrorError);
+    if (error) console.error(`${LOG_PREFIX} createJoinNotification:`, error);
+  } catch (err) {
+    // Notifications are best-effort — never fail a join because the admin
+    // didn't get a notification.
+    console.error(`${LOG_PREFIX} createJoinNotification:`, err);
   }
 }
 
@@ -526,5 +526,57 @@ export async function archiveActivity(activityId: string): Promise<void> {
     if (error) throw error;
   } catch (error) {
     handleServiceError('archiveActivity', error);
+  }
+}
+
+// ─── Group Streak ─────────────────────────────────────────────────────────────
+
+/**
+ * Compute the current group streak: the number of consecutive days
+ * (ending today) on which every current member has at least one submission.
+ *
+ * Cheap client-side implementation. For groups with many members
+ * and many submissions, a Postgres function would be faster; this is
+ * fine up to ~50 members + a few hundred submissions.
+ */
+export async function getGroupStreak(groupId: string): Promise<number> {
+  try {
+    // Get current members
+    const { data: members, error: mErr } = await supabase
+      .from('group_members')
+      .select('user_id')
+      .eq('group_id', groupId);
+    if (mErr) throw mErr;
+    const memberIds = (members ?? []).map((m: any) => m.user_id);
+    if (memberIds.length === 0) return 0;
+
+    // Pull the last 30 days of submissions for the group
+    const since = new Date(Date.now() - 30 * 86400_000).toISOString();
+    const { data: subs, error: sErr } = await supabase
+      .from('submissions')
+      .select('user_id, client_timestamp')
+      .eq('group_id', groupId)
+      .gte('client_timestamp', since);
+    if (sErr) throw sErr;
+
+    // Build a set: { userId → Set<YYYY-MM-DD> }
+    const byUserDay = new Map<string, Set<string>>();
+    for (const s of subs ?? []) {
+      const day = (s.client_timestamp as string).slice(0, 10);
+      if (!byUserDay.has(s.user_id)) byUserDay.set(s.user_id, new Set());
+      byUserDay.get(s.user_id)!.add(day);
+    }
+
+    // Walk back from today, requiring every member to have submitted
+    let streak = 0;
+    for (let i = 0; i < 30; i++) {
+      const day = new Date(Date.now() - i * 86400_000).toISOString().slice(0, 10);
+      const allSubmitted = memberIds.every((uid) => byUserDay.get(uid)?.has(day));
+      if (allSubmitted) streak++;
+      else break;
+    }
+    return streak;
+  } catch (error) {
+    handleServiceError('getGroupStreak', error);
   }
 }

@@ -36,7 +36,7 @@ export interface FeedCardProps {
 export function FeedCard({ user, activity, submission, onReact, onComment, onPress }: FeedCardProps) {
   return (
     <Card variant="elevated" padding="none" onPress={onPress} style={styles.card}>
-      {/* Activity color bar — thin, top-anchored, full-width */}
+      {/* Activity color bar â€” thin, top-anchored, full-width */}
       <View style={[styles.activityBar, { backgroundColor: activity.color }]} />
 
       {/* Header */}
@@ -44,10 +44,10 @@ export function FeedCard({ user, activity, submission, onReact, onComment, onPre
         <View style={styles.userInfo}>
           <Avatar src={user.avatarUrl} name={user.name} size="md" />
           <View style={styles.userText}>
-            <Text variant="headingSm" color={COLORS.inkDisplay} numberOfLines={1}>
+            <Text variant="headingSm" color={COLORS.textPrimary} numberOfLines={1}>
               {user.name}
             </Text>
-            <Text variant="caption" color={COLORS.inkSecondary} numberOfLines={1}>
+            <Text variant="caption" color={COLORS.textSecondary} numberOfLines={1}>
               {user.groupName} · {submission.timestamp}
             </Text>
           </View>
@@ -79,14 +79,14 @@ export function FeedCard({ user, activity, submission, onReact, onComment, onPre
       {(submission.title || submission.description) ? (
         <View style={styles.content}>
           {submission.title ? (
-            <Text variant="headingMd" color={COLORS.inkDisplay} numberOfLines={2}>
+            <Text variant="headingMd" color={COLORS.textPrimary} numberOfLines={2}>
               {submission.title}
             </Text>
           ) : null}
           {submission.description ? (
             <Text
               variant="bodySm"
-              color={COLORS.inkSecondary}
+              color={COLORS.textSecondary}
               numberOfLines={3}
               style={styles.description}
             >
@@ -99,16 +99,16 @@ export function FeedCard({ user, activity, submission, onReact, onComment, onPre
       {/* Footer */}
       <View style={styles.footer}>
         <Pressable onPress={onReact} style={styles.footerAction} hitSlop={6}>
-          <Icon name="fire" size={18} color={COLORS.inkPrimary} />
-          <Text variant="label" color={COLORS.inkPrimary}>{submission.reactions}</Text>
+          <Icon name="fire" size={18} color={COLORS.textPrimary} />
+          <Text variant="label" color={COLORS.textPrimary}>{submission.reactions}</Text>
         </Pressable>
         <Pressable onPress={onComment} style={styles.footerAction} hitSlop={6}>
-          <Icon name="chat-circle" size={18} color={COLORS.inkPrimary} />
-          <Text variant="label" color={COLORS.inkPrimary}>{submission.comments}</Text>
+          <Icon name="chat-circle" size={18} color={COLORS.textPrimary} />
+          <Text variant="label" color={COLORS.textPrimary}>{submission.comments}</Text>
         </Pressable>
         <View style={{ flex: 1 }} />
         <Pressable onPress={onPress} hitSlop={6} style={styles.footerAction}>
-          <Icon name="arrow-up-right" size={18} color={COLORS.inkSecondary} />
+          <Icon name="arrow-up-right" size={18} color={COLORS.textSecondary} />
         </Pressable>
       </View>
     </Card>
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   photo: {
     width: '100%',
     aspectRatio: 4 / 5,
-    backgroundColor: COLORS.surfaceSunken,
+    backgroundColor: COLORS.bgSurface,
   },
   streakChip: {
     position: 'absolute',

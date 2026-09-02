@@ -96,13 +96,13 @@ export default function OnboardingScreen({ navigation }: any) {
         </Animated.View>
 
         <Animated.View style={[styles.text, { opacity }]}>
-          <Text variant="eyebrow" color={COLORS.inkSecondary} style={styles.step}>
+          <Text variant="eyebrow" color={COLORS.textSecondary} style={styles.step}>
             Step {index + 1} of {ONBOARDING_DATA.length}
           </Text>
-          <Text variant="displayMd" color={COLORS.inkDisplay} style={styles.title}>
+          <Text variant="displayMd" color={COLORS.textPrimary} style={styles.title}>
             {item.title}
           </Text>
-          <Text variant="body" color={COLORS.inkSecondary} style={styles.description}>
+          <Text variant="body" color={COLORS.textSecondary} style={styles.description}>
             {item.description}
           </Text>
         </Animated.View>
@@ -115,7 +115,7 @@ export default function OnboardingScreen({ navigation }: any) {
       <View style={styles.header}>
         {currentIndex < ONBOARDING_DATA.length - 1 ? (
           <Pressable onPress={handleComplete} hitSlop={8}>
-            <Text variant="label" color={COLORS.inkSecondary}>Skip</Text>
+            <Text variant="label" color={COLORS.textSecondary}>Skip</Text>
           </Pressable>
         ) : (
           <View />
@@ -156,7 +156,7 @@ export default function OnboardingScreen({ navigation }: any) {
                 key={i.toString()}
                 style={[
                   styles.dot,
-                  { width: dotWidth, opacity: dotOpacity, backgroundColor: COLORS.inkDisplay },
+                  { width: dotWidth, opacity: dotOpacity, backgroundColor: COLORS.textPrimary },
                 ]}
               />
             );
@@ -186,7 +186,7 @@ function hexToTint(hex: string, alpha: number) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.surfaceBase,
+    backgroundColor: COLORS.bgBase,
   },
   header: {
     height: 56,

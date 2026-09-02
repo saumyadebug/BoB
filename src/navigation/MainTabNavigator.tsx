@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Pressable, Platform, StyleSheet, Animated } from 'react-native';
+import { View, Pressable, Platform, StyleSheet, Animated, Alert } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/Main/HomeScreen';
 import GroupsScreen from '../screens/Main/GroupsScreen';
@@ -58,8 +58,8 @@ function TabBarIcon({ name, focused }: { name: IconName; focused: boolean }) {
   return (
     <Icon
       name={name}
-      size={22}
-      color={focused ? COLORS.inkDisplay : COLORS.inkTertiary}
+      size={20}
+      color={focused ? COLORS.textPrimary : COLORS.textTertiary}
       bold={focused}
     />
   );
@@ -71,8 +71,8 @@ export default function MainTabNavigator() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: COLORS.inkDisplay,
-        tabBarInactiveTintColor: COLORS.inkTertiary,
+        tabBarActiveTintColor: COLORS.textPrimary,
+        tabBarInactiveTintColor: COLORS.textTertiary,
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel,
         tabBarItemStyle: styles.tabBarItem,
@@ -97,11 +97,11 @@ export default function MainTabNavigator() {
       <Tab.Screen
         name="Submit"
         component={SubmitPlaceholder}
-        options={({ navigation }: any) => ({
+        options={({ navigation: _nav }: any) => ({
           tabBarLabel: () => null,
           tabBarButton: () => (
             <TactileSubmitPill onPress={() => {
-              navigation.navigate('SubmissionFlow');
+              _nav.navigate('SubmissionFlow');
             }} />
           ),
         })}
@@ -128,13 +128,14 @@ export default function MainTabNavigator() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: COLORS.surfaceElevated,
+    // Spec: dark cosmos tab bar = elevated panel with subtle 1px top border,
+    // no drop shadow.
+    backgroundColor: COLORS.bgPanel,
     borderTopWidth: 1,
-    borderTopColor: COLORS.hairline,
-    height: Platform.OS === 'ios' ? 88 : 72,
+    borderTopColor: COLORS.border,
+    height: Platform.OS === 'ios' ? 88 : 68,
     paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 12,
-    ...SHADOWS.card,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 10,
   },
   tabBarItem: {
     paddingTop: 4,
@@ -143,29 +144,26 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     fontSize: 11,
     marginTop: 4,
-    letterSpacing: 0.1,
+    letterSpacing: 0.3,
   },
   submitWrap: {
-    top: -18,
+    top: -16,
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   submitPill: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: COLORS.accent,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: COLORS.accentRed,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 10,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   submitPillPressed: {
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 4 },
+    backgroundColor: '#E02D40',
+    transform: [{ scale: 0.94 }],
   },
 });

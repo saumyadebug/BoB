@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, ViewProps, StyleSheet, Pressable, ViewStyle, StyleProp } from 'react-native';
+import { View, ViewProps, StyleSheet, Pressable, ViewStyle, StyleProp, Platform } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -8,7 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { COLORS, RADIUS, SHADOWS, SPACE } from '@/constants/theme';
 
-type Variant = 'elevated' | 'flat' | 'outline' | 'sunken';
+type Variant = 'elevated' | 'flat' | 'outline' | 'sunken' | 'glass' | 'squircle';
 
 export interface CardProps extends ViewProps {
   padding?: keyof typeof SPACE | number | 'none';
@@ -18,7 +18,9 @@ export interface CardProps extends ViewProps {
   style?: StyleProp<ViewStyle>;
 }
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const isWeb = Platform.OS === 'web';
+// On web, fall back to a regular Pressable â€” Reanimated needs the native module.
+const AnimatedPressable = isWeb ? Pressable : Animated.createAnimatedComponent(Pressable);
 
 export function Card({
   padding = 'xl',
@@ -83,27 +85,42 @@ function getVariantStyle(v: Variant) {
   switch (v) {
     case 'flat':
       return {
-        backgroundColor: COLORS.surfaceElevated,
+        backgroundColor: COLORS.bgPanel,
         borderWidth: 0,
         ...SHADOWS.none,
       } as const;
     case 'outline':
       return {
-        backgroundColor: COLORS.surfaceElevated,
+        backgroundColor: COLORS.bgPanel,
         borderWidth: 1,
         borderColor: COLORS.hairline,
         ...SHADOWS.none,
       } as const;
+    case 'glass':
+      return {
+        backgroundColor: COLORS.bgGlass,
+        borderWidth: 1,
+        borderColor: COLORS.hairline,
+        ...SHADOWS.none,
+      } as const;
+    case 'squircle':
+      return {
+        backgroundColor: COLORS.bgSurface,
+        borderWidth: 1,
+        borderColor: COLORS.hairline,
+        borderRadius: RADIUS.squircle,
+        ...SHADOWS.none,
+      } as const;
     case 'sunken':
       return {
-        backgroundColor: COLORS.surfaceSunken,
+        backgroundColor: COLORS.bgSurface,
         borderWidth: 0,
         ...SHADOWS.none,
       } as const;
     case 'elevated':
     default:
       return {
-        backgroundColor: COLORS.surfaceElevated,
+        backgroundColor: COLORS.bgPanel,
         borderWidth: 1,
         borderColor: COLORS.hairline,
         ...SHADOWS.card,

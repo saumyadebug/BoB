@@ -5,7 +5,7 @@ import { Text, Icon, IconName } from '@/components/ui';
 import { COLORS, RADIUS } from '@/constants/theme';
 import * as Linking from 'expo-linking';
 import { useAuthStore } from '@/store/useAuthStore';
-import { firebaseAuth } from '@/services/firebase';
+import { userService } from '@/services/userService';
 
 interface Choice {
   id: 'create' | 'join' | 'skip';
@@ -23,14 +23,14 @@ const CHOICES: Choice[] = [
     description: 'Create a new group and invite friends with a code.',
     icon: 'sparkle',
     iconBg: COLORS.accentTint,
-    iconColor: COLORS.accent,
+    iconColor: COLORS.accentBlue,
   },
   {
     id: 'join',
     title: 'Join a pact',
     description: 'Enter an invite code from a friend.',
     icon: 'users',
-    iconBg: COLORS.positiveTint,
+    iconBg: 'rgba(46, 157, 106, 0.12)',
     iconColor: COLORS.positive,
   },
 ];
@@ -54,31 +54,26 @@ export default function JoinOrCreateScreen({ navigation }: any) {
     return () => sub.remove();
   }, []);
 
-  const completeAuth = () => {
-    const user = firebaseAuth.currentUser;
-    setUser({
-      id: user?.uid || 'new-user',
-      email: user?.email || '',
-      displayName: user?.displayName || 'You',
-      username: 'You',
-      avatarUrl: user?.photoURL || null,
-      level: 1, xp: 0, shieldsAvailable: 3,
-      totalSubmissions: 0, longestStreak: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
+  /**
+   * Hydrate the local user store from the public.users table. We don't
+   * fabricate a user — the Splash screen and the auth-state listener will
+   * have already set the session. This just fetches the profile row.
+   */
+  const completeAuth = async () => {
+    const profile = await userService.fetchCurrentUser();
+    if (profile) setUser(profile);
   };
 
-  const handleDeepLink = (e: { url: string }) => {
+  const handleDeepLink = async (e: { url: string }) => {
     const data = Linking.parse(e.url);
     if (data.path === 'invite' && data.queryParams?.code) {
-      completeAuth();
+      await completeAuth();
       navigation.replace('JoinGroup', { code: data.queryParams.code });
     }
   };
 
-  const handleSelect = (choice: Choice['id']) => {
-    completeAuth();
+  const handleSelect = async (choice: Choice['id']) => {
+    await completeAuth();
     if (choice === 'create') navigation.replace('CreateGroup');
     else if (choice === 'join') navigation.replace('JoinGroup');
   };
@@ -86,11 +81,11 @@ export default function JoinOrCreateScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text variant="eyebrow" color={COLORS.inkSecondary}>Almost there</Text>
-        <Text variant="displaySm" color={COLORS.inkDisplay} style={styles.title}>
+        <Text variant="eyebrow" color={COLORS.textSecondary}>Almost there</Text>
+        <Text variant="displaySm" color={COLORS.textPrimary} style={styles.title}>
           Join a pact
         </Text>
-        <Text variant="body" color={COLORS.inkSecondary} style={styles.description}>
+        <Text variant="body" color={COLORS.textSecondary} style={styles.description}>
           StreakPact works best with a small group. Pick how you want to start.
         </Text>
       </View>
@@ -121,12 +116,12 @@ export default function JoinOrCreateScreen({ navigation }: any) {
                 <Icon name={c.icon} size={28} color={c.iconColor} />
               </View>
               <View style={styles.cardBody}>
-                <Text variant="headingMd" color={COLORS.inkDisplay}>{c.title}</Text>
-                <Text variant="bodySm" color={COLORS.inkSecondary} style={styles.cardDesc}>
+                <Text variant="headingMd" color={COLORS.textPrimary}>{c.title}</Text>
+                <Text variant="bodySm" color={COLORS.textSecondary} style={styles.cardDesc}>
                   {c.description}
                 </Text>
               </View>
-              <Icon name="caret-right" size={18} color={COLORS.inkTertiary} />
+              <Icon name="caret-right" size={18} color={COLORS.textTertiary} />
             </Pressable>
           </Animated.View>
         ))}
@@ -134,7 +129,7 @@ export default function JoinOrCreateScreen({ navigation }: any) {
 
       <Animated.View style={[styles.footer, { opacity: s3 }]}>
         <Pressable onPress={completeAuth} hitSlop={8}>
-          <Text variant="label" color={COLORS.inkSecondary}>Skip for now</Text>
+          <Text variant="label" color={COLORS.textSecondary}>Skip for now</Text>
         </Pressable>
       </Animated.View>
     </SafeAreaView>
@@ -142,7 +137,7 @@ export default function JoinOrCreateScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surfaceBase, paddingHorizontal: 24 },
+  container: { flex: 1, backgroundColor: COLORS.bgBase, paddingHorizontal: 24 },
   header: { marginTop: 24, marginBottom: 32 },
   title: { marginTop: 8, marginBottom: 8 },
   description: { lineHeight: 24, maxWidth: 360 },
@@ -150,7 +145,7 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.bgPanel,
     borderRadius: RADIUS.lg,
     padding: 20,
     borderWidth: 1,
@@ -158,7 +153,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   cardPressed: {
-    backgroundColor: COLORS.surfaceSunken,
+    backgroundColor: COLORS.bgSurface,
   },
   cardIcon: {
     width: 56,

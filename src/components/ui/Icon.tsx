@@ -13,18 +13,20 @@ import { PhosphorIcon } from './PhosphorIcon';
  */
 
 export type IconName =
-  | 'lightning' | 'fire' | 'flame'
+  | 'lightning' | 'flash' | 'fire' | 'flame' | 'spark'
   | 'house' | 'house-fill' | 'users' | 'users-fill'
   | 'trophy' | 'trophy-fill'
   | 'user' | 'user-fill'
   | 'plus' | 'check' | 'x' | 'arrow-right' | 'arrow-left' | 'arrow-up-right'
-  | 'caret-down' | 'caret-right' | 'caret-up'
+  | 'caret-down' | 'caret-right' | 'caret-up' | 'caret-left'
   | 'camera' | 'image' | 'paper-plane-right'
   | 'gear' | 'gear-fill' | 'sliders' | 'sliders-horizontal'
   | 'bell' | 'bell-fill' | 'bell-ringing'
   | 'magnifying-glass' | 'funnel'
   | 'heart' | 'heart-fill' | 'chat-circle' | 'chat-circle-fill'
   | 'share-network' | 'link' | 'qr-code' | 'copy' | 'key'
+  | 'clock' | 'play' | 'pause' | 'shuffle' | 'arrows-clockwise' | 'speaker-high'
+  | 'globe' | 'envelope' | 'notebook'
   | 'lock' | 'lock-open' | 'fingerprint' | 'shield' | 'shield-fill' | 'shield-check'
   | 'star' | 'star-fill' | 'medal' | 'medal-fill'
   | 'eye' | 'eye-slash'

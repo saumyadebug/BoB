@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   chip: {
     position: 'absolute',
     alignSelf: 'center',
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.accentBlue,
     paddingHorizontal: 22,
     paddingVertical: 12,
     borderRadius: RADIUS.pill,

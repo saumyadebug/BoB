@@ -22,7 +22,7 @@ export interface User {
 
 // ─── Group ───────────────────────────────────────────────────────────────────
 
-export type GroupVibe = 'hustle' | 'study' | 'gym' | 'custom';
+export type GroupVibe = 'hustle' | 'study' | 'gym' | 'custom' | 'relaxed';
 
 export interface Group {
   id: string;
@@ -71,6 +71,10 @@ export interface FieldDefinition {
   options?: string[];
   required: boolean;
   unit?: string;                  // e.g. "min", "km", "pages"
+  /** Max character / numeric length. Shown as a counter on text + number inputs. */
+  maxLength?: number;
+  /** Conditional visibility — only render this field if another field has the given value. */
+  showIf?: { fieldId: string; equals: string | number | boolean };
 }
 
 export interface Activity {
@@ -240,6 +244,7 @@ export interface AddActivityInput {
   templateFields?: FieldDefinition[];
   frequency?: ActivityFrequency;
   frequencyDays?: number[];
+  restDaysPerWeek?: number;
   requirePhoto?: boolean;
 }
 

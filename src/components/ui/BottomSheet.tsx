@@ -85,14 +85,14 @@ export function BottomSheet({ isVisible, onClose, children, height = 'auto' }: B
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: COLORS.surfaceOverlay,
+    backgroundColor: COLORS.bgOverlay,
   },
   kbWrapper: {
     flex: 1,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.bgPanel,
     borderTopLeftRadius: RADIUS.xl,
     borderTopRightRadius: RADIUS.xl,
     padding: 24,

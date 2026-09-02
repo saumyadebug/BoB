@@ -43,11 +43,11 @@ export function StackedAvatars({ avatars, names = [], max = 3, size = 32 }: Stac
               borderRadius: size / 2,
               marginLeft: -(size * 0.32),
               borderWidth: 2,
-              borderColor: COLORS.surfaceBase,
+              borderColor: COLORS.bgBase,
             },
           ]}
         >
-          <Text variant="numericSm" color={COLORS.inkDisplay}>
+          <Text variant="numericSm" color={COLORS.textPrimary}>
             +{remaining}
           </Text>
         </View>
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     // overlap handled by margin
   },
   moreContainer: {
-    backgroundColor: COLORS.surfaceSunken,
+    backgroundColor: COLORS.bgSurface,
     alignItems: 'center',
     justifyContent: 'center',
   },
