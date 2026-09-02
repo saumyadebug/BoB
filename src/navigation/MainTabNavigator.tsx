@@ -101,8 +101,7 @@ export default function MainTabNavigator() {
           tabBarLabel: () => null,
           tabBarButton: () => (
             <TactileSubmitPill onPress={() => {
-              // Could navigate to a submission sheet, or scroll the groups FAB into view
-              navigation.navigate('Groups');
+              navigation.navigate('SubmissionFlow');
             }} />
           ),
         })}
