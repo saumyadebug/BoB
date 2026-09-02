@@ -46,9 +46,9 @@ export default function ComparativeScreen() {
           style={styles.iconBtn}
           hitSlop={6}
         >
-          <Icon name="x" size={20} color={COLORS.inkDisplay} />
+          <Icon name="x" size={20} color={COLORS.textPrimary} />
         </Pressable>
-        <Text variant="headingMd" color={COLORS.inkDisplay} style={styles.headerTitle}>
+        <Text variant="headingMd" color={COLORS.textPrimary} style={styles.headerTitle}>
           Streak Duel
         </Text>
         <View style={styles.iconBtnPlaceholder} />
@@ -65,7 +65,7 @@ export default function ComparativeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.surfaceBase },
+  safeArea: { flex: 1, backgroundColor: COLORS.bgBase },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   iconBtn: {
     width: 40, height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.bgPanel,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1,
     borderColor: COLORS.hairline,
@@ -91,6 +91,6 @@ const styles = StyleSheet.create({
   },
   heatmapWrapper: {
     padding: SPACE.lg,
-    paddingBottom: SPACE.huge,
+    paddingBottom: SPACE.xxl,
   }
 });

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, ScrollView, StyleSheet, SafeAreaView, Pressable, Alert } from 'react-native';
-import { Text, Avatar, Card, Badge, Button, Icon, Skeleton } from '@/components/ui';
+import { Text, Avatar, Card, Badge, Button, Icon, Skeleton, YearOverviewHeatmap } from '@/components/ui';
 import { COLORS, RADIUS } from '@/constants/theme';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCurrentUser, useUserGroups } from '@/hooks';
@@ -52,6 +52,17 @@ export default function ProfileScreen() {
 
   const totalSubmissions = currentUser?.totalSubmissions ?? submissions.length;
   const shields = currentUser?.shieldsAvailable ?? 0;
+
+  // Mock data for YearOverviewHeatmap
+  const heatmapData = useMemo(() => {
+    return Array.from({ length: 364 }).map((_, i) => {
+      const hasSubmission = Math.random() > 0.75;
+      return {
+        date: new Date(Date.now() - (364 - i) * 86400000).toISOString().split('T')[0],
+        count: hasSubmission ? Math.floor(Math.random() * 4) + 1 : 0
+      };
+    });
+  }, []);
 
   if (userLoading) {
     return (
@@ -154,6 +165,14 @@ export default function ProfileScreen() {
             <StatCard value={xp.toLocaleString()} label="Total XP" icon="lightning" />
             <StatCard value={currentBestStreak} label="Current best" icon="flame" />
           </View>
+        </View>
+
+        {/* Year Overview */}
+        <View style={styles.section}>
+          <YearOverviewHeatmap
+            data={heatmapData}
+            onDayPress={(day) => Alert.alert('Activity', `${day.count} submissions on ${day.date}`)}
+          />
         </View>
 
         {/* Sign out */}

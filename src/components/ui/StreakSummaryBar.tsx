@@ -30,14 +30,14 @@ export function StreakSummaryBar({ members, onPressMember, style }: StreakSummar
     >
       <View style={[styles.glowBorder, { borderColor: item.flameColor + '40' }]} />
       <View style={styles.content}>
-        <Avatar source={item.avatarUrl} size="md" fallback={item.name} />
+        <Avatar source={item.avatarUrl} size="md" name={item.name} />
         <Text variant="label" color={COLORS.inkDisplay} style={styles.name} numberOfLines={1}>
           {item.name}
         </Text>
         <View style={styles.streakBox}>
           <Text variant="caption" color={COLORS.inkTertiary}>Streak</Text>
           <View style={styles.flameRow}>
-            <Icon name="zap" size={16} color={item.flameColor} />
+            <Icon name="lightning" size={12} color={item.flameColor} />
           </View>
           <View style={styles.countRow}>
             <Text style={[styles.streakCount, { color: item.flameColor }]}>{item.streak}</Text>
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceSunken,
   },
   glowBorder: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderWidth: 1,
     borderRadius: RADIUS.lg,
   },

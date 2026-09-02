@@ -158,12 +158,12 @@ export default function GroupHomeScreen() {
 
         {/* Streak Summary */}
         <StreakSummaryBar 
-          members={group.members.map(m => ({
+          members={members.map((m: any) => ({
             id: m.userId,
             name: m.user?.displayName || 'User',
             avatarUrl: m.user?.avatarUrl,
             streak: m.user?.longestStreak || 0,
-            flameColor: COLORS.accent,
+            flameColor: COLORS.accentBlue,
           }))} 
         />
 

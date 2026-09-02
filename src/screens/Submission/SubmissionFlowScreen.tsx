@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, Pressable, SafeAreaView, Platform, KeyboardAvoidingView, ScrollView, Image } from 'react-native';
+import { View, StyleSheet, Pressable, SafeAreaView, Platform, KeyboardAvoidingView, ScrollView, Image } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, Activity } from '@/types';
 import { COLORS, TYPOGRAPHY, SPACE, RADIUS, SHADOWS } from '@/constants/theme';
+import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/ui/Icon';
 import { DynamicForm } from '@/components/ui/DynamicForm';
 import { Input } from '@/components/ui/Input';
@@ -90,14 +91,14 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
             else if (step === 'DETAILS') setStep('FORM');
             else if (step === 'CONFIRM') setStep('DETAILS');
           }}>
-          <Icon name="arrow-left" size={24} color={COLORS.inkBase} />
+          <Icon name="arrow-left" size={24} color={COLORS.textPrimary} />
         </Pressable>
       ) : (
         <View style={styles.headerBtn} />
       )}
       <Text style={styles.headerTitle}>{title}</Text>
       <Pressable style={styles.headerBtn} onPress={handleClose}>
-        <Icon name="x" size={24} color={COLORS.inkBase} />
+        <Icon name="x" size={24} color={COLORS.textPrimary} />
       </Pressable>
     </View>
   );
@@ -134,16 +135,16 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
                 </View>
               ) : (
                 <>
-                  <Icon name="camera" size={64} color={COLORS.inkTertiary} />
+                  <Icon name="camera" size={64} color={COLORS.textTertiary} />
                   <Text style={[styles.placeholderText, { marginTop: SPACE.md }]}>Show the crew you did it!</Text>
                   
                   <View style={styles.cameraButtons}>
                     <Pressable style={styles.primaryBtn} onPress={handleTakePhoto}>
-                      <Icon name="camera" size={20} color={COLORS.surfaceMain} />
+                      <Icon name="camera" size={20} color={COLORS.bgBase} />
                       <Text style={[styles.primaryBtnText, { marginLeft: SPACE.sm }]}>Take Photo</Text>
                     </Pressable>
                     <Pressable style={styles.secondaryBtn} onPress={handlePickImage}>
-                      <Icon name="image" size={20} color={COLORS.inkBase} />
+                      <Icon name="image" size={20} color={COLORS.textPrimary} />
                       <Text style={[styles.secondaryBtnText, { marginLeft: SPACE.sm }]}>Gallery</Text>
                     </Pressable>
                   </View>
@@ -209,7 +210,7 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
               <View style={styles.chipsRow}>
                 {['Felt heavy today 🥵', 'Crushed it! 💪', 'New PR 🏆'].map(chip => (
                   <Pressable key={chip} style={styles.suggestionChip} onPress={() => setDescription(prev => (prev ? prev + ' ' + chip : chip))}>
-                    <Text variant="caption" color={COLORS.inkPrimary}>{chip}</Text>
+                    <Text variant="caption" color={COLORS.textPrimary}>{chip}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -265,32 +266,32 @@ export default function SubmissionFlowScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.surfaceMain },
+  safeArea: { flex: 1, backgroundColor: COLORS.bgBase },
   container: { flex: 1 },
   stepContainer: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACE.lg, paddingTop: Platform.OS === 'android' ? SPACE.xl : SPACE.md, paddingBottom: SPACE.md, borderBottomWidth: 1, borderBottomColor: COLORS.hairline },
   headerBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { ...TYPOGRAPHY.h3, color: COLORS.inkDisplay },
+  headerTitle: { ...TYPOGRAPHY.headlineSm, color: COLORS.textPrimary },
   content: { flex: 1, padding: SPACE.xl, justifyContent: 'center', alignItems: 'center' },
   scrollContent: { padding: SPACE.xl, paddingBottom: 100 },
   fieldWrapper: { marginBottom: 24 },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
-  suggestionChip: { backgroundColor: COLORS.surfaceElevated, paddingHorizontal: 12, paddingVertical: 8, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.hairline },
+  suggestionChip: { backgroundColor: COLORS.bgPanel, paddingHorizontal: 12, paddingVertical: 8, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: COLORS.hairline },
   centerContent: { justifyContent: 'center', alignItems: 'center', padding: SPACE.xl },
-  placeholderText: { ...TYPOGRAPHY.body, color: COLORS.inkTertiary, marginBottom: SPACE.xl, textAlign: 'center' },
-  mockBtn: { backgroundColor: COLORS.accent, paddingHorizontal: SPACE.xl, paddingVertical: SPACE.md, borderRadius: RADIUS.round, ...SHADOWS.raised },
-  mockBtnText: { ...TYPOGRAPHY.button, color: COLORS.surfaceMain },
-  primaryBtn: { backgroundColor: COLORS.accent, paddingHorizontal: SPACE.xl, paddingVertical: SPACE.md, borderRadius: RADIUS.round, ...SHADOWS.raised, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1, marginHorizontal: SPACE.xs },
-  primaryBtnText: { ...TYPOGRAPHY.button, color: COLORS.surfaceMain },
-  secondaryBtn: { backgroundColor: COLORS.surfaceElevated, paddingHorizontal: SPACE.xl, paddingVertical: SPACE.md, borderRadius: RADIUS.round, borderWidth: 1, borderColor: COLORS.hairlineStrong, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1, marginHorizontal: SPACE.xs },
-  secondaryBtnText: { ...TYPOGRAPHY.button, color: COLORS.inkBase },
+  placeholderText: { ...TYPOGRAPHY.body, color: COLORS.textTertiary, marginBottom: SPACE.xl, textAlign: 'center' },
+  mockBtn: { backgroundColor: COLORS.accentBlue, paddingHorizontal: SPACE.xl, paddingVertical: SPACE.md, borderRadius: RADIUS.full, ...SHADOWS.raised },
+  mockBtnText: { ...TYPOGRAPHY.label, color: COLORS.bgBase },
+  primaryBtn: { backgroundColor: COLORS.accentBlue, paddingHorizontal: SPACE.xl, paddingVertical: SPACE.md, borderRadius: RADIUS.full, ...SHADOWS.raised, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1, marginHorizontal: SPACE.xs },
+  primaryBtnText: { ...TYPOGRAPHY.label, color: COLORS.bgBase },
+  secondaryBtn: { backgroundColor: COLORS.bgPanel, paddingHorizontal: SPACE.xl, paddingVertical: SPACE.md, borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.borderStrong, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1, marginHorizontal: SPACE.xs },
+  secondaryBtnText: { ...TYPOGRAPHY.label, color: COLORS.textPrimary },
   cameraButtons: { flexDirection: 'row', width: '100%', marginBottom: SPACE.xl, paddingHorizontal: SPACE.md },
   skipBtn: { padding: SPACE.md },
-  skipBtnText: { ...TYPOGRAPHY.body, color: COLORS.inkTertiary, textDecorationLine: 'underline' },
+  skipBtnText: { ...TYPOGRAPHY.body, color: COLORS.textTertiary, textDecorationLine: 'underline' },
   previewContainer: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' },
   previewImage: { width: '100%', aspectRatio: 4/5, borderRadius: RADIUS.lg, marginBottom: SPACE.xl, ...SHADOWS.card },
   previewActions: { flexDirection: 'row', width: '100%', paddingHorizontal: SPACE.md },
   successEmoji: { fontSize: 72, marginBottom: SPACE.md },
-  successTitle: { ...TYPOGRAPHY.h1, color: COLORS.inkDisplay, marginBottom: SPACE.xs },
-  successSubtitle: { ...TYPOGRAPHY.h2, color: COLORS.accent, marginBottom: SPACE.xxl },
+  successTitle: { ...TYPOGRAPHY.displaySm, color: COLORS.textPrimary, marginBottom: SPACE.xs },
+  successSubtitle: { ...TYPOGRAPHY.headline, color: COLORS.accentBlue, marginBottom: SPACE.xxl },
 });
