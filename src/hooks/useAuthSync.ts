@@ -44,6 +44,60 @@ export function useAuthSync(): void {
       }
     };
 
+    const syncUser = async (session: any) => {
+      if (!session?.user?.id) {
+        useAuthStore.getState().setUser(null);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (error && (error.code === 'PGRST303' || /future/i.test(error.message))) {
+          console.warn('[useAuthSync] Clock skew detected (PGRST303). Resetting session.');
+          await supabase.auth.signOut();
+          return;
+        }
+
+        if (data && mounted) {
+          useAuthStore.getState().setUser({
+            id: data.id,
+            email: data.email,
+            username: data.username,
+            displayName: data.display_name,
+            avatarUrl: data.avatar_url ?? null,
+            xp: data.xp ?? 0,
+            level: data.level ?? 1,
+            totalSubmissions: data.total_submissions ?? 0,
+            longestStreak: data.longest_streak ?? 0,
+            shieldsAvailable: data.shields_available ?? 0,
+            createdAt: data.created_at,
+            updatedAt: data.updated_at,
+          });
+        } else if (mounted) {
+          useAuthStore.getState().setUser({
+            id: session.user.id,
+            email: session.user.email ?? '',
+            username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
+            displayName: session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'User',
+            avatarUrl: session.user.user_metadata?.avatar_url ?? null,
+            xp: 0,
+            level: 1,
+            totalSubmissions: 0,
+            longestStreak: 0,
+            shieldsAvailable: 1,
+            createdAt: session.user.created_at || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      } catch (err) {
+        console.warn('[useAuthSync] Profile fetch error:', err);
+      }
+    };
+
     const refreshSession = async () => {
       if (inflight.current) return;
       inflight.current = true;
@@ -52,6 +106,7 @@ export function useAuthSync(): void {
         if (!mounted) return;
         setSession(data.session);
         await persist(data.session?.access_token ?? null);
+        await syncUser(data.session);
       } catch (err) {
         console.warn('[useAuthSync] getSession failed:', err);
       } finally {
@@ -69,6 +124,7 @@ export function useAuthSync(): void {
         if (!mounted) return;
         setSession(session);
         await persist(session?.access_token ?? null);
+        await syncUser(session);
       });
       subscription = sub.data.subscription;
     };

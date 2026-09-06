@@ -100,6 +100,27 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
+  const handleDemoLogin = async () => {
+    setIsLoading(true);
+    setAuthError(null);
+    try {
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({
+        email: 'alex@streakpact.app',
+        password: 'streakdev123',
+      });
+      if (error) throw mapSupabaseAuthError(error);
+
+      if (signInData.session) {
+        await storage.setItem('streakpact_jwt', signInData.session.access_token);
+        setSession(signInData.session);
+      }
+    } catch (e: any) {
+      setAuthError(e?.message || 'Demo sign in failed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -172,13 +193,22 @@ export default function LoginScreen({ navigation }: any) {
             ) : null}
 
             <Button
-              label={isLoading ? 'Signing inâ€¦' : 'Sign in'}
+              label={isLoading ? 'Signing in…' : 'Sign in'}
               onPress={handleSubmit(onSubmit)}
               disabled={isLoading}
               loading={isLoading}
               fullWidth
               size="lg"
               style={styles.submit}
+            />
+
+            <View style={{ height: 10 }} />
+            <Button
+              label="⚡ Quick Demo Sign In (Alex Rivera)"
+              variant="secondary"
+              onPress={handleDemoLogin}
+              disabled={isLoading}
+              fullWidth
             />
 
             <View style={styles.dividerRow}>
