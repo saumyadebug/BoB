@@ -4,8 +4,11 @@ import { Text } from './Text';
 import { COLORS, SPACE, RADIUS } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { mockTodayActivities } from '@/hooks/useMockFeed';
+import { useNavigation } from '@react-navigation/native';
 
 export function TodayBanner() {
+  const navigation = useNavigation<any>();
+
   return (
     <View style={styles.container}>
       <Text variant="headingMd" color={COLORS.textPrimary} style={styles.title}>
@@ -26,6 +29,9 @@ export function TodayBanner() {
           return (
             <Pressable 
               key={activity.id}
+              onPress={() => {
+                navigation.navigate('SubmissionFlow', { activityId: activity.id });
+              }}
               style={({ pressed }) => [
                 styles.activityCard,
                 pressed && styles.pressed
