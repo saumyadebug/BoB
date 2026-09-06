@@ -26,6 +26,7 @@ export interface InputProps extends TextInputProps {
   trailingIcon?: IconName;
   onTrailingIconPress?: () => void;
   containerStyle?: StyleProp<ViewStyle>;
+  showCharCount?: boolean;
 }
 
 export function Input({
@@ -40,6 +41,7 @@ export function Input({
   onFocus,
   onBlur,
   secureTextEntry,
+  showCharCount,
   ...rest
 }: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
@@ -74,15 +76,15 @@ export function Input({
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && (
+      {label ? (
         <Text variant="label" style={styles.label}>{label}</Text>
-      )}
+      ) : null}
       <Animated.View style={[styles.inputContainer, borderStyle]}>
-        {leadingIcon && (
+        {leadingIcon ? (
           <View style={styles.iconLeading}>
             <Icon name={leadingIcon} size={20} color={isFocused ? COLORS.textPrimary : COLORS.textTertiary} />
           </View>
-        )}
+        ) : null}
         <TextInput
           style={[
             styles.input,
@@ -97,7 +99,7 @@ export function Input({
           secureTextEntry={isSecure}
           {...rest}
         />
-        {showTrailing && (
+        {showTrailing ? (
           <Pressable
             onPress={() => {
               if (secureTextEntry) setIsSecure(s => !s);
@@ -108,21 +110,30 @@ export function Input({
             accessibilityRole="button"
             accessibilityLabel={secureTextEntry ? (isSecure ? 'Show password' : 'Hide password') : undefined}
           >
-            {trailingIconName && (
+            {trailingIconName ? (
               <Icon name={trailingIconName} size={20} color={COLORS.textTertiary} />
-            )}
+            ) : null}
           </Pressable>
-        )}
+        ) : null}
       </Animated.View>
-      {error ? (
-        <Text variant="caption" color={COLORS.danger} style={styles.message}>
-          {error}
-        </Text>
-      ) : hint ? (
-        <Text variant="caption" color={COLORS.textSecondary} style={styles.message}>
-          {hint}
-        </Text>
-      ) : null}
+      <View style={styles.messageRow}>
+        <View style={{ flex: 1 }}>
+          {error ? (
+            <Text variant="caption" color={COLORS.danger} style={styles.message}>
+              {error}
+            </Text>
+          ) : hint ? (
+            <Text variant="caption" color={COLORS.textSecondary} style={styles.message}>
+              {hint}
+            </Text>
+          ) : null}
+        </View>
+        {showCharCount && rest.maxLength ? (
+          <Text variant="caption" color={COLORS.textTertiary} style={styles.charCount}>
+            {`${String(rest.value || '').length}/${rest.maxLength}`}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -162,6 +173,15 @@ const styles = StyleSheet.create({
   message: {
     marginTop: 6,
     marginLeft: 2,
+  },
+  messageRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  charCount: {
+    marginTop: 6,
+    marginRight: 2,
   },
 });
 

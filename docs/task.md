@@ -193,30 +193,30 @@
 - [ ] Today Banner dot → direct submission flow
 
 ### 5.2 Camera & Photo Step
-- [ ] Expo ImagePicker (camera default + gallery)
+- [x] Expo ImagePicker (camera default + gallery)
 - [ ] Camera overlay with activity name badge
-- [ ] "Skip photo" button
-- [ ] Crop interface (1:1 or 4:5)
-- [ ] Auto-compression (≤800KB)
-- [ ] Photo preview with retake/remove
+- [x] "Skip photo" button
+- [x] Crop interface (1:1 or 4:5)
+- [x] Auto-compression (≤800KB)
+- [x] Photo preview with retake/remove
 
 ### 5.3 Activity Fields Step
-- [ ] Dynamic form rendering based on activity template
-- [ ] Required field validation
-- [ ] Keyboard-avoiding scroll view
+- [x] Dynamic form rendering based on activity template
+- [ ] Required field validation (Backend/Zod pending)
+- [x] Keyboard-avoiding scroll view
 
 ### 5.4 Title & Description Step
-- [ ] Title input (80 chars, optional)
-- [ ] Description textarea (500 chars, optional)
-- [ ] Character counters
-- [ ] Quick suggestion chips
+- [x] Title input (80 chars, optional)
+- [x] Description textarea (500 chars, optional)
+- [x] Character counters
+- [x] Quick suggestion chips
 
 ### 5.5 Confirm & Submit Step
-- [ ] Preview card (photo + title + field summary)
-- [ ] "Submit StreakPact 🚀" button
+- [x] Preview card (photo + title + field summary)
+- [x] "Submit StreakPact 🚀" button
 - [ ] Submit pipeline: timestamp → upload photo → create record → Firestore mirror → streak update → XP → notify
-- [ ] Confetti + XP animation + Volt cheers
-- [ ] Navigate to feed
+- [x] Confetti + XP animation + Volt cheers
+- [x] Navigate to feed
 
 ### 5.6 Submission Edit & Delete
 - [ ] Edit within 1 hour (title, description, fields only)
@@ -466,7 +466,7 @@
 | 2. Auth & Onboarding | 24 | 20 | [/] In Progress |
 | 3. Groups & Teams | 38 | 38 | [x] Completed |
 | 4. Activity System | 20 | 20 | [x] Completed |
-| 5. Submissions | 24 | 0 | ⬜ Not Started |
+| 5. Submissions | 24 | 14 | [/] In Progress |
 | 6. Calendar & Streaks | 24 | 0 | ⬜ Not Started |
 | 7. Social & Feed | 24 | 0 | ⬜ Not Started |
 | 8. Gamification | 17 | 0 | ⬜ Not Started |

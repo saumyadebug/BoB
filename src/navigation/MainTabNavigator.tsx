@@ -101,16 +101,7 @@ export default function MainTabNavigator() {
           tabBarLabel: () => null,
           tabBarButton: () => (
             <TactileSubmitPill onPress={() => {
-              // Phase 5: open the submission bottom sheet here. For now, jump
-              // to Groups so the user at least sees their pacts, and surface
-              // a "coming soon" alert so the button feels responsive.
-              _nav.navigate('Groups');
-              setTimeout(() => {
-                Alert.alert(
-                  'Submit coming in Phase 5',
-                  'You will be able to pick an activity and submit your photo here.'
-                );
-              }, 200);
+              _nav.navigate('SubmissionFlow');
             }} />
           ),
         })}

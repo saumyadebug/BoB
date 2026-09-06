@@ -75,7 +75,7 @@ export function Avatar({
       ) : (
         <View style={styles.empty} />
       )}
-      {status && (
+      {status ? (
         <View
           style={[
             styles.statusDot,
@@ -91,7 +91,7 @@ export function Avatar({
             },
           ]}
         />
-      )}
+      ) : null}
     </View>
   );
 }

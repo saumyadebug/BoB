@@ -1,8 +1,8 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, Pressable, RefreshControl, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Text, Button, Avatar, Card, Badge, Icon, IconName, BottomSheet, VoltPeek, FeedCard } from '@/components/ui';
-import { COLORS, RADIUS, SHADOWS } from '@/constants/theme';
+import { Text, Button, Avatar, Card, Badge, Icon, IconName, BottomSheet, Input, StreakSummaryBar, CalendarGrid, VoltPeek, FeedCard } from '@/components/ui';
+import { COLORS, RADIUS, SHADOWS, SPACE } from '@/constants/theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ActivityCard, MemberActivityStatus } from '@/components/groups/ActivityCard';
 import { GroupMember } from '@/types';
@@ -12,11 +12,13 @@ import { useGroup, useGroupActivities, useGroupStreak } from '@/hooks';
 import { useGroupSubmissions } from '@/hooks/useSubmissions';
 import { resolveGroupIcon } from '@/utils/groupVisuals';
 import { submissionToFeedCard } from '@/utils/feedAdapters';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming, Easing, runOnJS } from 'react-native-reanimated';
 
-type Tab = 'feed' | 'activities' | 'members' | 'leaderboard';
+type Tab = 'feed' | 'calendar' | 'activities' | 'members' | 'leaderboard';
 
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'feed', label: 'Feed', icon: 'house' },
+  { id: 'calendar', label: 'Calendar', icon: 'calendar' },
   { id: 'activities', label: 'Activities', icon: 'target' },
   { id: 'members', label: 'Members', icon: 'users' },
   { id: 'leaderboard', label: 'Ranks', icon: 'trophy' },
@@ -123,11 +125,11 @@ export default function GroupHomeScreen() {
               <Text variant="displaySm" color={COLORS.textPrimary}>{group.name}</Text>
             </View>
           </View>
-          {group.goalDescription && (
+          {group.goalDescription ? (
             <Text variant="body" color={COLORS.textSecondary} style={styles.description}>
               {group.goalDescription}
             </Text>
-          )}
+          ) : null}
         </View>
 
         {/* Stat strip */}
@@ -155,26 +157,40 @@ export default function GroupHomeScreen() {
           />
         </View>
 
+        {/* Streak Summary */}
+        <StreakSummaryBar 
+          members={members.map((m: any) => ({
+            id: m.userId,
+            name: m.user?.displayName || 'User',
+            avatarUrl: m.user?.avatarUrl,
+            streak: m.user?.longestStreak || 0,
+            flameColor: COLORS.accentBlue,
+          }))} 
+        />
+
         {/* Tabs */}
         <View style={styles.tabsRow}>
-          {TABS.map(t => {
-            const active = tab === t.id;
-            return (
-              <Pressable
-                key={t.id}
-                onPress={() => setTab(t.id)}
-                style={[styles.tab, active ? styles.tabActive : null]}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-              >
-                <Icon name={t.icon} size={16} color={active ? COLORS.textPrimary : COLORS.textTertiary} bold={active} />
-                <Text variant="label" color={active ? COLORS.textPrimary : COLORS.textTertiary}>
-                  {t.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {TABS.map(t => {
+              const active = tab === t.id;
+              return (
+                <Pressable
+                  key={t.id}
+                  onPress={() => setTab(t.id)}
+                  style={[styles.tab, active ? styles.tabActive : null]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Icon name={t.icon} size={16} color={active ? COLORS.textPrimary : COLORS.textTertiary} bold={active} />
+                  <Text variant="label" color={active ? COLORS.textPrimary : COLORS.textTertiary}>
+                    {t.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
+
 
         {/* Tab content */}
         {tab === 'feed' && (
@@ -185,6 +201,7 @@ export default function GroupHomeScreen() {
             onInvite={() => setInviteSheet(true)}
           />
         )}
+        {tab === 'calendar' && <CalendarTab group={group} />}
         {tab === 'activities' && (
           <ActivitiesTab
             group={group}
@@ -194,7 +211,7 @@ export default function GroupHomeScreen() {
             navigation={navigation}
           />
         )}
-        {tab === 'members' && <MembersTab group={group} members={members} />}
+        {tab === 'members' && <MembersTab group={group} members={members} navigation={navigation} />}
         {tab === 'leaderboard' && <LeaderboardTab group={group} members={members} />}
       </ScrollView>
 
@@ -247,11 +264,32 @@ function StatTile({ label, value, unit, icon, accent }: { label: string; value: 
       <Icon name={icon} size={18} color={accent ? COLORS.accentBlue : COLORS.textSecondary} />
       <View style={styles.statValueRow}>
         <Text variant="numericLg" color={COLORS.textPrimary}>{safeValue}</Text>
-        {safeUnit.length > 0 && (
+        {safeUnit.length > 0 ? (
           <Text variant="body" color={COLORS.textSecondary}>{safeUnit}</Text>
-        )}
+        ) : null}
       </View>
       <Text variant="caption" color={COLORS.textTertiary}>{safeLabel}</Text>
+    </View>
+  );
+}
+
+function CalendarTab({ group }: { group: any }) {
+  const d = new Date();
+  const dateStr1 = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const d2 = new Date(); d2.setDate(d.getDate() - 1);
+  const dateStr2 = `${d2.getFullYear()}-${String(d2.getMonth() + 1).padStart(2, '0')}-${String(d2.getDate()).padStart(2, '0')}`;
+  const d3 = new Date(); d3.setDate(d.getDate() - 2);
+  const dateStr3 = `${d3.getFullYear()}-${String(d3.getMonth() + 1).padStart(2, '0')}-${String(d3.getDate()).padStart(2, '0')}`;
+  
+  const mockCalendarData = {
+    [dateStr1]: [COLORS.accentBlue, COLORS.positive, COLORS.warning],
+    [dateStr2]: [COLORS.accentBlue, COLORS.positive],
+    [dateStr3]: [COLORS.accentBlue, COLORS.positive, COLORS.warning, COLORS.bgSurface],
+  };
+
+  return (
+    <View style={styles.tabContent}>
+      <CalendarGrid data={mockCalendarData} />
     </View>
   );
 }
@@ -364,35 +402,94 @@ function ActivitiesTab({
   );
 }
 
-function MembersTab({ members }: { group: any; members: any[] }) {
+function MembersTab({ members, navigation }: { group: any; members: any[]; navigation: any }) {
   const sorted = [...members].sort((a, b) => (b.user?.xp || 0) - (a.user?.xp || 0));
   return (
     <View style={styles.tabContent}>
       {sorted.map((m: any, i: number) => (
-        <Card key={m.userId} variant="flat" padding="lg" style={styles.memberRow}>
-          <Text variant="numericMd" color={COLORS.textTertiary} style={styles.memberRank}>
-            {String(i + 1).padStart(2, '0')}
-          </Text>
-          <Avatar src={m.user?.avatarUrl} name={m.user?.displayName} size="md" />
-          <View style={{ flex: 1 }}>
-            <View style={styles.memberNameRow}>
-              <Text variant="headingSm" color={COLORS.textPrimary} numberOfLines={1}>
-                {m.user?.displayName}
+        <Pressable
+          key={m.userId}
+          onPress={() => navigation.navigate('Comparative', { member1Id: 'u1', member2Id: m.userId })}
+        >
+          <Card variant="flat" padding="lg" style={styles.memberRow}>
+            <Text variant="numericMd" color={COLORS.textTertiary} style={styles.memberRank}>
+              {String(i + 1).padStart(2, '0')}
+            </Text>
+            <Avatar src={m.user?.avatarUrl} name={m.user?.displayName} size="md" />
+            <View style={{ flex: 1 }}>
+              <View style={styles.memberNameRow}>
+                <Text variant="headingSm" color={COLORS.textPrimary} numberOfLines={1}>
+                  {m.user?.displayName}
+                </Text>
+                {m.role === 'admin' && <Badge label="Admin" variant="neutral" />}
+              </View>
+              <Text variant="caption" color={COLORS.textSecondary}>
+                @{m.user?.username} · Level {m.user?.level}
               </Text>
-              {m.role === 'admin' && <Badge label="Admin" variant="neutral" />}
             </View>
-            <Text variant="caption" color={COLORS.textSecondary}>
-              @{m.user?.username} · Level {m.user?.level}
-            </Text>
-          </View>
-          <View style={styles.memberStats}>
-            <Text variant="numericMd" color={COLORS.textPrimary}>
-              {m.user?.xp?.toLocaleString()}
-            </Text>
-            <Text variant="caption" color={COLORS.textTertiary}>XP</Text>
-          </View>
-        </Card>
+            <View style={styles.memberStats}>
+              <NudgeButton memberName={m.user?.displayName} />
+            </View>
+          </Card>
+        </Pressable>
       ))}
+    </View>
+  );
+}
+
+function NudgeButton({ memberName }: { memberName: string }) {
+  const [nudged, setNudged] = useState(false);
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(0);
+
+  const animatedBoltStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }, { scale: 2 }],
+    position: 'absolute',
+    right: 10,
+    top: -20,
+  }));
+
+  const handleNudge = () => {
+    if (nudged) return;
+    
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setNudged(true);
+    
+    // Animate button bounce
+    scale.value = withSequence(
+      withSpring(1.2),
+      withSpring(1)
+    );
+
+    // Lightning bolt shoot-up animation
+    opacity.value = 1;
+    translateY.value = withTiming(-100, { duration: 600, easing: Easing.out(Easing.ease) }, () => {
+      opacity.value = 0;
+      translateY.value = 0;
+      runOnJS(Alert.alert)('Nudge Sent!', `You just reminded ${memberName || 'your pact member'} to submit today. ⚡`);
+    });
+  };
+
+  const buttonStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }]
+  }));
+
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <Pressable onPress={handleNudge} disabled={nudged}>
+        <Animated.View style={[styles.nudgeBtn, nudged && styles.nudgeBtnDisabled, buttonStyle]}>
+          <Icon name="lightning" size={14} color={nudged ? COLORS.textTertiary : '#FFD700'} />
+          <Text variant="caption" color={nudged ? "textTertiary" : "textPrimary"} style={styles.nudgeBtnText}>
+            {nudged ? 'Nudged' : 'Nudge'}
+          </Text>
+        </Animated.View>
+      </Pressable>
+      
+      <Animated.View style={animatedBoltStyle} pointerEvents="none">
+        <Text style={{ fontSize: 24 }}>⚡</Text>
+      </Animated.View>
     </View>
   );
 }
@@ -556,4 +653,19 @@ const styles = StyleSheet.create({
   inviteCode: { textAlign: 'center', marginBottom: 12, letterSpacing: 6 },
   inviteSub: { textAlign: 'center', lineHeight: 22 },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  nudgeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: `${COLORS.accentBlue}20`,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.pill,
+  },
+  nudgeBtnDisabled: {
+    backgroundColor: COLORS.bgSurface,
+  },
+  nudgeBtnText: {
+    fontWeight: '600',
+  }
 });

@@ -152,11 +152,11 @@ export default function RegisterScreen({ navigation }: any) {
               )}
             />
 
-            {authError && (
+            {authError ? (
               <Text variant="bodySm" color={COLORS.danger} style={styles.errorText}>
                 {authError}
               </Text>
-            )}
+            ) : null}
 
             <Button
               label={isLoading ? 'Creating accountâ€¦' : 'Create account'}

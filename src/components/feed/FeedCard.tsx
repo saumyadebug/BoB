@@ -61,29 +61,29 @@ export function FeedCard({ user, activity, submission, onReact, onComment, onPre
       </View>
 
       {/* Photo hero */}
-      {submission.photoUrl && (
+      {submission.photoUrl ? (
         <View style={styles.photoWrap}>
           <Image source={{ uri: submission.photoUrl }} style={styles.photo} resizeMode="cover" />
-          {submission.streakCount > 0 && (
+          {submission.streakCount > 0 ? (
             <View style={styles.streakChip}>
               <Icon name="flame" size={14} color="#FFFFFF" />
               <Text variant="label" color="#FFFFFF" style={styles.streakText}>
                 Day {submission.streakCount}
               </Text>
             </View>
-          )}
+          ) : null}
         </View>
-      )}
+      ) : null}
 
       {/* Content */}
-      {(submission.title || submission.description) && (
+      {(submission.title || submission.description) ? (
         <View style={styles.content}>
-          {submission.title && (
+          {submission.title ? (
             <Text variant="headingMd" color={COLORS.textPrimary} numberOfLines={2}>
               {submission.title}
             </Text>
-          )}
-          {submission.description && (
+          ) : null}
+          {submission.description ? (
             <Text
               variant="bodySm"
               color={COLORS.textSecondary}
@@ -92,9 +92,9 @@ export function FeedCard({ user, activity, submission, onReact, onComment, onPre
             >
               {submission.description}
             </Text>
-          )}
+          ) : null}
         </View>
-      )}
+      ) : null}
 
       {/* Footer */}
       <View style={styles.footer}>
