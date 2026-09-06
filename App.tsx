@@ -59,6 +59,8 @@ const linking: any = {
       GroupSettings: 'group/:groupId/settings',
       CreateActivity: 'group/:groupId/create-activity',
       ActivityDetail: 'group/:groupId/activity',
+      SubmissionFlow: 'submit',
+      Comparative: 'comparative/:member1Id/:member2Id',
     },
   },
 };

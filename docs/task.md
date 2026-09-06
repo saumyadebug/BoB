@@ -188,13 +188,13 @@
 ## Phase 5: Submission System & Media (2 weeks)
 
 ### 5.1 Submission Entry Points
-- [ ] FAB → activity selector bottom sheet → submission flow
-- [ ] Activity card "Submit" → direct submission flow
-- [ ] Today Banner dot → direct submission flow
+- [x] FAB → activity selector bottom sheet → submission flow
+- [x] Activity card "Submit" → direct submission flow
+- [x] Today Banner dot → direct submission flow
 
 ### 5.2 Camera & Photo Step
 - [x] Expo ImagePicker (camera default + gallery)
-- [ ] Camera overlay with activity name badge
+- [x] Camera overlay with activity name badge
 - [x] "Skip photo" button
 - [x] Crop interface (1:1 or 4:5)
 - [x] Auto-compression (≤800KB)
@@ -202,7 +202,7 @@
 
 ### 5.3 Activity Fields Step
 - [x] Dynamic form rendering based on activity template
-- [ ] Required field validation (Backend/Zod pending)
+- [x] Required field validation
 - [x] Keyboard-avoiding scroll view
 
 ### 5.4 Title & Description Step
@@ -214,117 +214,117 @@
 ### 5.5 Confirm & Submit Step
 - [x] Preview card (photo + title + field summary)
 - [x] "Submit StreakPact 🚀" button
-- [ ] Submit pipeline: timestamp → upload photo → create record → Firestore mirror → streak update → XP → notify
+- [x] Submit pipeline: timestamp → upload photo → create record → Firestore mirror → streak update → XP → notify
 - [x] Confetti + XP animation + Volt cheers
 - [x] Navigate to feed
 
 ### 5.6 Submission Edit & Delete
-- [ ] Edit within 1 hour (title, description, fields only)
-- [ ] Delete within 24 hours (streak break warning)
-- [ ] Sync edits/deletes to Supabase + Firestore
+- [x] Edit within 1 hour (title, description, fields only)
+- [x] Delete within 24 hours (streak break warning)
+- [x] Sync edits/deletes to Supabase + Firestore
 
 ### 5.7 Offline Queue
-- [ ] AsyncStorage queue for offline submissions
-- [ ] Offline banner
-- [ ] Auto-upload on reconnect with original timestamps
-- [ ] Toast notification on sync
-- [ ] Handle photo upload failures gracefully
+- [x] AsyncStorage queue for offline submissions
+- [x] Offline banner
+- [x] Auto-upload on reconnect with original timestamps
+- [x] Toast notification on sync
+- [x] Handle photo upload failures gracefully
 
 ---
 
 ## Phase 6: Calendar & Streak Engine (2 weeks)
 
 ### 6.1 Group Calendar View
-- [ ] Month grid (7-column, current month)
-- [ ] Member dots per day cell (green/red/orange/grey/purple)
-- [ ] Tap day → bottom sheet with member submissions
-- [ ] Month navigation (swipe left/right)
-- [ ] "Today" snap-back button
+- [x] Month grid (7-column, current month)
+- [x] Member dots per day cell (green/red/orange/grey/purple)
+- [x] Tap day → bottom sheet with member submissions
+- [x] Month navigation (swipe left/right)
+- [x] "Today" snap-back button
 
 ### 6.2 Streak Summary Bar
-- [ ] Member streak cards (avatar, name, current/longest streak, total)
-- [ ] Sorted by current streak descending
-- [ ] Animated flame icon scaling
+- [x] Member streak cards (avatar, name, current/longest streak, total)
+- [x] Sorted by current streak descending
+- [x] Animated flame icon scaling
 
 ### 6.3 Comparative View (2-Person)
-- [ ] Side-by-side mini calendars
-- [ ] Streak battle banner
-- [ ] Animated versus indicator
+- [x] Side-by-side mini calendars
+- [x] Streak battle banner
+- [x] Animated versus indicator
 
 ### 6.4 Year Overview (GitHub-Style)
-- [ ] 365-cell heat map
-- [ ] Color intensity by submission count
-- [ ] Tap month → jump to detail view
+- [x] 365-cell heat map
+- [x] Color intensity by submission count
+- [x] Tap month → jump to detail view
 
 ### 6.5 Streak Calculation Engine
-- [ ] Supabase Edge Function / pg_cron daily job (00:05 UTC)
-- [ ] Streak break detection per user per activity
-- [ ] Milestone detection (7/14/30/60/100)
-- [ ] Timezone handling (user device TZ)
-- [ ] 2-minute grace window for edge-case submissions
+- [x] Supabase Edge Function / pg_cron daily job (00:05 UTC)
+- [x] Streak break detection per user per activity
+- [x] Milestone detection (7/14/30/60/100)
+- [x] Timezone handling (user device TZ)
+- [x] 2-minute grace window for edge-case submissions
 
 ### 6.6 Streak Shields
-- [ ] Earn 1 shield per 7 consecutive days
-- [ ] Max stockpile: 3
-- [ ] Missed day modal: "Use shield?"
-- [ ] Shield consumption logic
-- [ ] 1 shield per activity per week rule
-- [ ] Shield count UI on activity cards + profile
+- [x] Earn 1 shield per 7 consecutive days
+- [x] Max stockpile: 3
+- [x] Missed day modal: "Use shield?"
+- [x] Shield consumption logic
+- [x] 1 shield per activity per week rule
+- [x] Shield count UI on activity cards + profile
 
 ### 6.7 Rest Day System
-- [ ] Declare rest day (before midnight)
-- [ ] Rest day picker bottom sheet
-- [ ] Calendar grey dot with 🛌 icon
-- [ ] 0–2 rest days per week limit
-- [ ] No backdating rule
+- [x] Declare rest day (before midnight)
+- [x] Rest day picker bottom sheet
+- [x] Calendar grey dot with 🛌 icon
+- [x] 0–2 rest days per week limit
+- [x] No backdating rule
 
 ---
 
 ## Phase 7: Social Features & Feed (1.5 weeks)
 
 ### 7.1 Home Feed
-- [ ] Chronological aggregated feed
-- [ ] Feed card component (full anatomy)
-- [ ] Feed filters: All, By Group, By Activity
-- [ ] Empty state with Volt
-- [ ] Pull-to-refresh animation
-- [ ] Infinite scroll pagination (20/page)
+- [x] Chronological aggregated feed
+- [x] Feed card component (full anatomy)
+- [x] Feed filters: All, By Group, By Activity
+- [x] Empty state with Volt
+- [x] Pull-to-refresh animation
+- [x] Infinite scroll pagination (20/page)
 
 ### 7.2 Today Banner
-- [ ] Horizontal scroll at top
-- [ ] Activity icon + name + status (✅/🟠)
-- [ ] Tap pending → launch submission flow
-- [ ] Sticky with blur backdrop
+- [x] Horizontal scroll at top
+- [x] Activity icon + name + status (✅/🟠)
+- [x] Tap pending → launch submission flow
+- [x] Sticky with blur backdrop
 
 ### 7.3 Reactions System
-- [ ] 5 emoji reactions (🔥💪👏❤️💯)
-- [ ] Tap to react / un-react with animation
-- [ ] One reaction per user per submission
-- [ ] Reaction counts display
-- [ ] Tap count → who-reacted bottom sheet
-- [ ] Firestore real-time sync
+- [x] 5 emoji reactions (🔥💪👏❤️💯)
+- [x] Tap to react / un-react with animation
+- [x] One reaction per user per submission
+- [x] Reaction counts display
+- [x] Tap count → who-reacted bottom sheet
+- [x] Firestore real-time sync
 
 ### 7.4 Comments System
-- [ ] Expandable comment section
-- [ ] Comment input + send button
-- [ ] Comment display (avatar, name, text, timestamp)
-- [ ] @mention autocomplete
-- [ ] Firestore real-time listener
+- [x] Expandable comment section
+- [x] Comment input + send button
+- [x] Comment display (avatar, name, text, timestamp)
+- [x] @mention autocomplete
+- [x] Firestore real-time listener
 
 ### 7.5 Nudge System
-- [ ] Nudge button visibility logic (after noon, not submitted)
-- [ ] Lightning bolt animation
-- [ ] Push notification to recipient
-- [ ] 4-hour cooldown per recipient
-- [ ] Hype Man XP bonus (submit within 2hr of nudge)
-- [ ] Firestore nudge storage
+- [x] Nudge button visibility logic (after noon, not submitted)
+- [x] Lightning bolt animation
+- [x] Push notification to recipient
+- [x] 4-hour cooldown per recipient
+- [x] Hype Man XP bonus (submit within 2hr of nudge)
+- [x] Firestore nudge storage
 
 ### 7.6 Weekly Wrap-Up Card
-- [ ] Auto-generate Sunday 7 PM (Supabase scheduled function)
-- [ ] Card content: group + activity + member stats + MVP
-- [ ] Shareable PNG generation
-- [ ] "Share to Instagram/WhatsApp" export
-- [ ] Card stored in Supabase Storage
+- [x] Auto-generate Sunday 7 PM (Supabase scheduled function)
+- [x] Card content: group + activity + member stats + MVP
+- [x] Shareable PNG generation
+- [x] "Share to Instagram/WhatsApp" export
+- [x] Card stored in Supabase Storage
 
 ---
 
@@ -466,10 +466,10 @@
 | 2. Auth & Onboarding | 24 | 20 | [/] In Progress |
 | 3. Groups & Teams | 38 | 38 | [x] Completed |
 | 4. Activity System | 20 | 20 | [x] Completed |
-| 5. Submissions | 24 | 14 | [/] In Progress |
-| 6. Calendar & Streaks | 24 | 0 | ⬜ Not Started |
-| 7. Social & Feed | 24 | 0 | ⬜ Not Started |
+| 5. Submissions | 24 | 24 | [x] Completed |
+| 6. Calendar & Streaks | 24 | 24 | [x] Completed |
+| 7. Social & Feed | 24 | 24 | [x] Completed |
 | 8. Gamification | 17 | 0 | ⬜ Not Started |
 | 9. Notifications & Profile | 26 | 0 | ⬜ Not Started |
 | 10. Polish & Launch | 30 | 0 | ⬜ Not Started |
-| **Total** | **243** | **38** | **15%** |
+| **Total** | **243** | **180** | **74%** |
