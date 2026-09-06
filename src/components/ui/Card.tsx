@@ -19,8 +19,6 @@ export interface CardProps extends ViewProps {
 }
 
 const isWeb = Platform.OS === 'web';
-// On web, fall back to a regular Pressable â€” Reanimated needs the native module.
-const AnimatedPressable = isWeb ? Pressable : Animated.createAnimatedComponent(Pressable);
 
 export function Card({
   padding = 'xl',
@@ -60,17 +58,18 @@ export function Card({
 
   if (onPress || onLongPress) {
     return (
-      <AnimatedPressable
+      <Pressable
         onPress={onPress}
         onLongPress={onLongPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        style={[containerStyle, pressStyle]}
         accessibilityRole="button"
         {...(rest as any)}
       >
-        {children}
-      </AnimatedPressable>
+        <Animated.View style={[containerStyle, pressStyle]}>
+          {children}
+        </Animated.View>
+      </Pressable>
     );
   }
 

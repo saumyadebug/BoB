@@ -12,6 +12,7 @@ import { useGroup, useGroupActivities, useGroupStreak } from '@/hooks';
 import { useGroupSubmissions } from '@/hooks/useSubmissions';
 import { resolveGroupIcon } from '@/utils/groupVisuals';
 import { submissionToFeedCard } from '@/utils/feedAdapters';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming, Easing, runOnJS } from 'react-native-reanimated';
 
 type Tab = 'feed' | 'calendar' | 'activities' | 'members' | 'leaderboard';
 
@@ -427,14 +428,68 @@ function MembersTab({ members, navigation }: { group: any; members: any[]; navig
               </Text>
             </View>
             <View style={styles.memberStats}>
-              <Text variant="numericMd" color={COLORS.textPrimary}>
-                {m.user?.xp?.toLocaleString()}
-              </Text>
-              <Text variant="caption" color={COLORS.textTertiary}>XP</Text>
+              <NudgeButton memberName={m.user?.displayName} />
             </View>
           </Card>
         </Pressable>
       ))}
+    </View>
+  );
+}
+
+function NudgeButton({ memberName }: { memberName: string }) {
+  const [nudged, setNudged] = useState(false);
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(0);
+
+  const animatedBoltStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }, { scale: 2 }],
+    position: 'absolute',
+    right: 10,
+    top: -20,
+  }));
+
+  const handleNudge = () => {
+    if (nudged) return;
+    
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setNudged(true);
+    
+    // Animate button bounce
+    scale.value = withSequence(
+      withSpring(1.2),
+      withSpring(1)
+    );
+
+    // Lightning bolt shoot-up animation
+    opacity.value = 1;
+    translateY.value = withTiming(-100, { duration: 600, easing: Easing.out(Easing.ease) }, () => {
+      opacity.value = 0;
+      translateY.value = 0;
+      runOnJS(Alert.alert)('Nudge Sent!', `You just reminded ${memberName || 'your pact member'} to submit today. ⚡`);
+    });
+  };
+
+  const buttonStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }]
+  }));
+
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <Pressable onPress={handleNudge} disabled={nudged}>
+        <Animated.View style={[styles.nudgeBtn, nudged && styles.nudgeBtnDisabled, buttonStyle]}>
+          <Icon name="lightning" size={14} color={nudged ? COLORS.textTertiary : '#FFD700'} />
+          <Text variant="caption" color={nudged ? "textTertiary" : "textPrimary"} style={styles.nudgeBtnText}>
+            {nudged ? 'Nudged' : 'Nudge'}
+          </Text>
+        </Animated.View>
+      </Pressable>
+      
+      <Animated.View style={animatedBoltStyle} pointerEvents="none">
+        <Text style={{ fontSize: 24 }}>⚡</Text>
+      </Animated.View>
     </View>
   );
 }
@@ -598,4 +653,19 @@ const styles = StyleSheet.create({
   inviteCode: { textAlign: 'center', marginBottom: 12, letterSpacing: 6 },
   inviteSub: { textAlign: 'center', lineHeight: 22 },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  nudgeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: `${COLORS.accentBlue}20`,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.pill,
+  },
+  nudgeBtnDisabled: {
+    backgroundColor: COLORS.bgSurface,
+  },
+  nudgeBtnText: {
+    fontWeight: '600',
+  }
 });
