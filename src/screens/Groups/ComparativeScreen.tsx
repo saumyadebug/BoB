@@ -1,42 +1,50 @@
 import React from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { ComparativeView, DuelMember, YearOverviewHeatmap, Text, Icon } from '@/components/ui';
 import { COLORS, SPACE } from '@/constants/theme';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useComparativeDuel, useUserYearHeatmap } from '@/hooks/useStreaks';
 
 export default function ComparativeScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const { user } = useAuthStore();
 
-  // Mock data for the duel
-  const member1: DuelMember = {
-    id: 'u1',
-    name: 'You (Alex)',
-    color: '#3B82F6', // Blue
-    calendarData: {
-      '2026-09-01': ['#3B82F6'],
-      '2026-09-02': ['#3B82F6'],
-      '2026-08-31': ['#3B82F6'],
-      '2026-08-30': ['#3B82F6'],
-    }
+  const rawM1 = route.params?.member1Id;
+  const rawM2 = route.params?.member2Id;
+
+  // Resolve member1 (default to current user)
+  const member1Id = (!rawM1 || rawM1 === 'u1' || rawM1 === 'current-user')
+    ? (user?.id || 'dev-user')
+    : rawM1;
+
+  // Resolve member2
+  const member2Id = (!rawM2 || rawM2 === 'u2')
+    ? 'sarah-user'
+    : rawM2;
+
+  const { data: duelData, isLoading: duelLoading } = useComparativeDuel(member1Id, member2Id);
+  const { data: heatmapData = [] } = useUserYearHeatmap(member1Id);
+
+  // Fallback duel representation if data is still settling
+  const fallbackMember1: DuelMember = {
+    id: member1Id,
+    name: user?.displayName || 'You',
+    color: '#3B82F6',
+    calendarData: {},
   };
 
-  const member2: DuelMember = {
-    id: 'u2',
-    name: 'Sarah Kim',
-    color: '#F59E0B', // Orange
-    calendarData: {
-      '2026-09-01': ['#F59E0B'],
-      '2026-09-02': ['#F59E0B'],
-      '2026-08-28': ['#F59E0B'],
-    }
+  const fallbackMember2: DuelMember = {
+    id: member2Id,
+    name: 'Pact Member',
+    color: '#F59E0B',
+    calendarData: {},
   };
 
-  // Mock data for YearOverviewHeatmap
-  const heatmapData = Array.from({ length: 364 }).map((_, i) => ({
-    date: `2026-01-01`, // mock date
-    count: Math.random() > 0.6 ? Math.floor(Math.random() * 5) : 0
-  }));
+  const activeM1 = duelData?.member1 || fallbackMember1;
+  const activeM2 = duelData?.member2 || fallbackMember2;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -48,18 +56,37 @@ export default function ComparativeScreen() {
         >
           <Icon name="x" size={20} color={COLORS.textPrimary} />
         </Pressable>
-        <Text variant="headingMd" color={COLORS.textPrimary} style={styles.headerTitle}>
-          Streak Duel
-        </Text>
+        <View style={styles.titleContainer}>
+          <Text variant="headingMd" color={COLORS.textPrimary} style={styles.headerTitle}>
+            Streak Duel
+          </Text>
+          {duelData?.leadText && (
+            <Text variant="caption" color={COLORS.accentBlue} style={styles.leadText}>
+              {duelData.leadText}
+            </Text>
+          )}
+        </View>
         <View style={styles.iconBtnPlaceholder} />
       </View>
 
-      <ComparativeView member1={member1} member2={member2} style={{ flex: 1 }} />
+      {duelLoading ? (
+        <View style={styles.centerWrap}>
+          <ActivityIndicator color={COLORS.accentBlue} size="large" />
+        </View>
+      ) : (
+        <>
+          <ComparativeView member1={activeM1} member2={activeM2} style={{ flex: 1 }} />
 
-      {/* Temporarily rendering YearOverviewHeatmap here for demonstration */}
-      <View style={styles.heatmapWrapper}>
-        <YearOverviewHeatmap data={heatmapData} />
-      </View>
+          {heatmapData.length > 0 && (
+            <View style={styles.heatmapWrapper}>
+              <Text variant="eyebrow" color={COLORS.textSecondary} style={{ marginBottom: SPACE.xs }}>
+                Consistency Graph (365 Days)
+              </Text>
+              <YearOverviewHeatmap data={heatmapData} />
+            </View>
+          )}
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -74,23 +101,37 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 16,
   },
-  headerTitle: {
+  titleContainer: {
     flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
     textAlign: 'center',
   },
+  leadText: {
+    marginTop: 2,
+    fontWeight: '600',
+  },
   iconBtn: {
-    width: 40, height: 40,
+    width: 40,
+    height: 40,
     borderRadius: 20,
     backgroundColor: COLORS.bgPanel,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: COLORS.hairline,
   },
   iconBtnPlaceholder: {
     width: 40,
   },
+  centerWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   heatmapWrapper: {
     padding: SPACE.lg,
     paddingBottom: SPACE.xxl,
-  }
+  },
 });

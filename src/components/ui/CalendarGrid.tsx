@@ -24,12 +24,21 @@ export function CalendarGrid({ data, onPressDay, style }: CalendarGridProps) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
+  const isCurrentMonth = useMemo(() => {
+    const now = new Date();
+    return now.getFullYear() === year && now.getMonth() === month;
+  }, [year, month]);
+
   const handlePrevMonth = () => {
     setCurrentDate(new Date(year, month - 1, 1));
   };
 
   const handleNextMonth = () => {
     setCurrentDate(new Date(year, month + 1, 1));
+  };
+
+  const handleSnapToToday = () => {
+    setCurrentDate(new Date());
   };
 
   const daysInMonth = useMemo(() => {
@@ -80,14 +89,21 @@ export function CalendarGrid({ data, onPressDay, style }: CalendarGridProps) {
       <View style={styles.header}>
         <View style={styles.navRow}>
           <Pressable onPress={handlePrevMonth} style={styles.navBtn}>
-            <Icon name="arrow-left" size={20} color={COLORS.inkPrimary} />
+            <Icon name="arrow-left" size={18} color={COLORS.textPrimary} />
           </Pressable>
           <Pressable onPress={handleNextMonth} style={styles.navBtn}>
-            <Icon name="arrow-right" size={20} color={COLORS.inkPrimary} />
+            <Icon name="arrow-right" size={18} color={COLORS.textPrimary} />
           </Pressable>
+          {!isCurrentMonth && (
+            <Pressable onPress={handleSnapToToday} style={styles.todayBtn}>
+              <Text variant="caption" color={COLORS.accentBlue} style={{ fontWeight: '700' }}>
+                Today
+              </Text>
+            </Pressable>
+          )}
         </View>
-        <Text variant="headingLg" color={COLORS.inkDisplay} style={styles.monthTitle}>
-          {MONTHS[month]} <Text style={{ color: COLORS.inkSecondary }}>{year}</Text>
+        <Text variant="headingSm" color={COLORS.textPrimary} style={styles.monthTitle}>
+          {MONTHS[month]} <Text style={{ color: COLORS.textSecondary }}>{year}</Text>
         </Text>
       </View>
 
@@ -109,7 +125,7 @@ export function CalendarGrid({ data, onPressDay, style }: CalendarGridProps) {
               onPress={() => onPressDay?.(dayObj.date)}
               disabled={!dayObj.isCurrentMonth}
             >
-              <Text style={[styles.cellDate, !dayObj.isCurrentMonth && { color: COLORS.inkTertiary }]}>
+              <Text style={[styles.cellDate, !dayObj.isCurrentMonth && { color: COLORS.textTertiary }]}>
                 {dayObj.date.getDate()}
               </Text>
               <View style={styles.dotsRow}>
@@ -127,42 +143,54 @@ export function CalendarGrid({ data, onPressDay, style }: CalendarGridProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.bgPanel,
     borderRadius: RADIUS.lg,
     padding: SPACE.lg,
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACE.xl,
+    marginBottom: SPACE.lg,
   },
   navRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: SPACE.xs,
-    marginRight: SPACE.md,
   },
   navBtn: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.surfaceBase,
+    backgroundColor: COLORS.bgSurface,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
+  },
+  todayBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.pill,
+    backgroundColor: 'rgba(58, 130, 247, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 4,
   },
   monthTitle: {
     flex: 1,
-    textAlign: 'center',
-    marginRight: 36 * 2 + SPACE.xs + SPACE.md, // offset nav buttons for center alignment
+    textAlign: 'right',
   },
   weekDays: {
     flexDirection: 'row',
-    marginBottom: SPACE.md,
+    marginBottom: SPACE.sm,
   },
   weekDayText: {
     flex: 1,
     textAlign: 'center',
     ...TYPOGRAPHY.eyebrow,
-    color: COLORS.inkTertiary,
+    color: COLORS.textTertiary,
   },
   grid: {
     flexDirection: 'row',
@@ -174,7 +202,7 @@ const styles = StyleSheet.create({
     padding: SPACE.xs,
     alignItems: 'flex-start',
     borderRadius: RADIUS.xs,
-    backgroundColor: COLORS.surfaceBase,
+    backgroundColor: COLORS.bgSurface,
     marginVertical: 2,
     borderWidth: 1,
     borderColor: 'transparent',
@@ -184,13 +212,14 @@ const styles = StyleSheet.create({
   },
   cellDate: {
     ...TYPOGRAPHY.label,
-    color: COLORS.inkPrimary,
+    color: COLORS.textPrimary,
     marginBottom: SPACE.xs,
+    fontSize: 11,
   },
   dotsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 4,
+    gap: 3,
   },
   dot: {
     width: 6,

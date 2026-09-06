@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Text, Button, Card, Badge, Icon, IconName, ConfettiBurst, XPChip } from '@/components/ui';
+import { Text, Button, Card, Badge, Icon, IconName, ConfettiBurst, XPChip, CalendarGrid } from '@/components/ui';
 import { COLORS, RADIUS, SPACE } from '@/constants/theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Activity, FieldDefinition } from '@/types';
-import { useActivity, useArchiveActivity, useGroup } from '@/hooks';
+import {
+  useActivity,
+  useArchiveActivity,
+  useGroup,
+  useActivitySubmissions,
+  useDeclareRestDay,
+  useConsumeStreakShield,
+} from '@/hooks';
+import { useAuthStore } from '@/store/useAuthStore';
 import { PRESET_ACTIVITIES } from '@/constants/activityTemplates';
 import { DynamicForm } from '@/components/ui/DynamicForm';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -30,6 +38,14 @@ export default function ActivityDetailScreen() {
   const { data: fetchedActivity, isLoading } = useActivity(passedActivityId || '');
   const { data: groupData } = useGroup(groupId);
   const archiveActivityMut = useArchiveActivity(groupId);
+  const declareRestDayMut = useDeclareRestDay();
+  const consumeShieldMut = useConsumeStreakShield();
+  const { user } = useAuthStore();
+  const shieldsCount = user?.shieldsAvailable ?? 0;
+
+  // Prefer the live fetch, fall back to the route param if passed
+  const activity: Activity | undefined = fetchedActivity ?? passedActivity;
+  const { data: activitySubmissions = [] } = useActivitySubmissions(activity?.id || '');
 
   const [activeTab, setActiveTab] = useState<'calendar' | 'history'>('calendar');
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -37,23 +53,17 @@ export default function ActivityDetailScreen() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [showXPChip, setShowXPChip] = useState(false);
 
-  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([
-    {
-      id: 'h1',
-      userName: 'Alex Rivera',
-      timestamp: 'Today, 8:30 AM',
-      summary: 'Chest & Triceps completed. 65 minutes total. Felt great!',
-    },
-    {
-      id: 'h2',
-      userName: 'Sarah Kim',
-      timestamp: 'Yesterday, 7:15 PM',
-      summary: 'Completed 5km evening run. Pace 5:20/km.',
-    },
-  ]);
-
-  // Prefer the live fetch, fall back to the route param if passed
-  const activity: Activity | undefined = fetchedActivity ?? passedActivity;
+  // Map activity submissions to calendar dates
+  const activityCalendarData = React.useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const sub of activitySubmissions) {
+      if (sub.clientTimestamp) {
+        const dateKey = sub.clientTimestamp.slice(0, 10);
+        map[dateKey] = [activity?.color || COLORS.positive];
+      }
+    }
+    return map;
+  }, [activitySubmissions, activity?.color]);
 
   // Loading + not-found guard
   if (!activity || (isLoading && !passedActivity)) {
@@ -102,27 +112,6 @@ export default function ActivityDetailScreen() {
     setTimeout(() => {
       setIsSubmittingForm(false);
       setShowSubmitModal(false);
-
-      const summaryParts: string[] = [];
-      Object.entries(data).forEach(([key, val]) => {
-        if (Array.isArray(val)) {
-          summaryParts.push(`${key}: ${val.join(', ')}`);
-        } else if (typeof val === 'boolean') {
-          summaryParts.push(val ? `${key}: Yes` : `${key}: No`);
-        } else if (val) {
-          summaryParts.push(`${key}: ${val}`);
-        }
-      });
-      const summaryText = summaryParts.length > 0 ? summaryParts.join(' • ') : "Logged today's session successfully!";
-
-      const newEntry: HistoryItem = {
-        id: `h-${Date.now()}`,
-        userName: 'You',
-        timestamp: 'Just now',
-        summary: summaryText,
-        metrics: data,
-      };
-      setHistoryItems(prev => [newEntry, ...prev]);
 
       setShowCelebration(true);
       setShowXPChip(true);
@@ -198,15 +187,70 @@ export default function ActivityDetailScreen() {
           </Card>
         )}
 
-        {/* Quick Submit CTA */}
-        <View style={{ marginVertical: 16 }}>
+        {/* Rest Day & Shield Action Buttons */}
+        <View style={styles.actionRow}>
+          {activity.restDaysPerWeek > 0 && (
+            <Button
+              label="Declare Rest Day 🛌"
+              variant="secondary"
+              size="sm"
+              onPress={async () => {
+                const today = new Date().toISOString().slice(0, 10);
+                try {
+                  await declareRestDayMut.mutateAsync({ activityId: activity.id, targetDate: today });
+                  Alert.alert('Rest Day Declared 🛌', 'Your streak is protected for today. Enjoy your rest!');
+                } catch (err: any) {
+                  Alert.alert('Cannot Declare Rest Day', err.message || 'Rest day limit reached (max 2/week).');
+                }
+              }}
+              style={{ flex: 1 }}
+            />
+          )}
           <Button
-            label="Log Today's Session"
+            label={`Use Shield (${shieldsCount}) 🛡️`}
+            variant="secondary"
+            size="sm"
+            onPress={() => {
+              if (shieldsCount <= 0) {
+                Alert.alert('No Shields', 'You do not have any streak shields available. Earn shields by maintaining a 7-day streak!');
+                return;
+              }
+              const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+              Alert.alert(
+                'Deploy Streak Shield 🛡️',
+                'Use 1 shield to protect your streak from a missed day? (Max 1 shield per week)',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Use Shield',
+                    onPress: async () => {
+                      try {
+                        await consumeShieldMut.mutateAsync({ activityId: activity.id, missedDate: yesterday });
+                        Alert.alert('Streak Protected 🛡️', 'Your streak has been restored!');
+                      } catch (err: any) {
+                        Alert.alert('Shield Error', err.message || 'Could not deploy shield.');
+                      }
+                    },
+                  },
+                ]
+              );
+            }}
+            style={{ flex: 1 }}
+          />
+        </View>
+
+        {/* Quick Submit CTA */}
+        <View style={{ marginVertical: 12 }}>
+          <Button
+            label="Log Today's Session 🚀"
             variant="primary"
             leadingIcon="plus"
             onPress={() => {
               try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
-              setShowSubmitModal(true);
+              navigation.navigate('SubmissionFlow', {
+                activityId: activity.id,
+                groupId: activity.groupId || groupId,
+              });
             }}
           />
         </View>
@@ -238,44 +282,41 @@ export default function ActivityDetailScreen() {
               variant="label"
               color={activeTab === 'history' ? COLORS.textPrimary : COLORS.textTertiary}
             >
-              History ({historyItems.length})
+              History ({activitySubmissions.length})
             </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.tabContent}>
           {activeTab === 'calendar' ? (
-            <Card variant="glass" style={styles.placeholderContainer}>
-              <Text variant="headingSm" color={COLORS.textPrimary}>Monthly Heat Map</Text>
-              <Text variant="caption" color={COLORS.textSecondary} style={{ textAlign: 'center', marginTop: 6, marginBottom: 16 }}>
-                Filled dots indicate completed habit days.
-              </Text>
-
-              <View style={styles.miniHeatmapGrid}>
-                {Array.from({ length: 28 }).map((_, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.heatDot,
-                      { backgroundColor: i % 5 !== 3 ? COLORS.positive : COLORS.bgSurface }
-                    ]}
-                  />
-                ))}
-              </View>
-            </Card>
+            <CalendarGrid data={activityCalendarData} />
           ) : (
             <View style={{ gap: 12 }}>
-              {historyItems.map((item) => (
-                <Card key={item.id} variant="glass" style={styles.historyCard}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <Text variant="headingSm" color={COLORS.textPrimary}>{item.userName}</Text>
-                    <Text variant="caption" color={COLORS.textSecondary}>{item.timestamp}</Text>
-                  </View>
-                  <Text variant="bodySm" color={COLORS.textSecondary}>
-                    {item.summary}
+              {activitySubmissions.length === 0 ? (
+                <Card variant="glass" style={styles.placeholderContainer}>
+                  <Text variant="bodySm" color={COLORS.textSecondary} style={{ textAlign: 'center' }}>
+                    No submission history yet for this activity. Log your first proof!
                   </Text>
                 </Card>
-              ))}
+              ) : (
+                activitySubmissions.map((item) => (
+                  <Card key={item.id} variant="glass" style={styles.historyCard}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <Text variant="headingSm" color={COLORS.textPrimary}>
+                        {item.title || 'Completed Session'}
+                      </Text>
+                      <Text variant="caption" color={COLORS.textSecondary}>
+                        {item.clientTimestamp?.slice(0, 10)}
+                      </Text>
+                    </View>
+                    {item.description ? (
+                      <Text variant="bodySm" color={COLORS.textSecondary}>
+                        {item.description}
+                      </Text>
+                    ) : null}
+                  </Card>
+                ))
+              )}
             </View>
           )}
         </View>
@@ -364,6 +405,11 @@ const styles = StyleSheet.create({
   title: {
     marginBottom: 6,
     textAlign: 'center',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
   },
   statsRow: {
     flexDirection: 'row',

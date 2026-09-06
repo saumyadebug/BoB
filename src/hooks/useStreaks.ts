@@ -1,56 +1,30 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/services/supabase';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { STALE_TIMES, QUERY_KEYS } from '@/services/queryClient';
 import { Streak } from '@/types';
-import { AppError } from '@/services/errors';
+import {
+  fetchUserStreaks,
+  fetchStreak,
+  declareRestDay,
+  consumeStreakShield,
+  fetchGroupMonthlyCalendar,
+  fetchGroupStreakMembers,
+  fetchComparativeDuel,
+  fetchUserYearHeatmap,
+} from '@/services/streakService';
+import { StreakMember } from '@/components/ui/StreakSummaryBar';
+import { DuelMember } from '@/components/ui/ComparativeView';
 
 /**
- * React Query hooks for streaks.
- *
- * Streak rows are populated by the daily pg_cron job (Phase 6). For now,
- * we just read them. The first cron tick is "next phase" but the read path
- * works immediately once any data exists.
+ * React Query hooks for streaks, calendars, rest days, and shields.
  */
 
-function mapStreakRow(row: any): Streak {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    activityId: row.activity_id,
-    currentStreak: row.current_streak ?? 0,
-    longestStreak: row.longest_streak ?? 0,
-    lastSubmissionDate: row.last_submission_date ?? null,
-    shieldUsedDates: row.shield_used_dates ?? [],
-    restDayDates: row.rest_day_dates ?? [],
-    updatedAt: row.updated_at,
-  };
-}
-
-async function fetchUserStreaks(userId: string): Promise<Streak[]> {
-  const { data, error } = await supabase
-    .from('streaks')
-    .select('*')
-    .eq('user_id', userId)
-    .order('current_streak', { ascending: false });
-  if (error) throw new AppError('NETWORK', 'Failed to load streaks');
-  return ((data ?? []) as any[]).map(mapStreakRow);
-}
-
-async function fetchStreak(userId: string, activityId: string): Promise<Streak | null> {
-  const { data, error } = await supabase
-    .from('streaks')
-    .select('*')
-    .match({ user_id: userId, activity_id: activityId })
-    .maybeSingle();
-  if (error) throw new AppError('NETWORK', 'Failed to load streak');
-  return data ? mapStreakRow(data) : null;
-}
+// ─── Query Hooks ─────────────────────────────────────────────────────────────
 
 export function useUserStreaks(userId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.streaks(userId),
     queryFn: () => fetchUserStreaks(userId),
-    enabled: userId.length > 0,
+    enabled: Boolean(userId && userId.length > 0),
     staleTime: STALE_TIMES.calendar,
   });
 }
@@ -59,7 +33,86 @@ export function useStreak(userId: string, activityId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.streak(userId, activityId),
     queryFn: () => fetchStreak(userId, activityId),
-    enabled: userId.length > 0 && activityId.length > 0,
+    enabled: Boolean(userId && userId.length > 0 && activityId && activityId.length > 0),
     staleTime: STALE_TIMES.calendar,
+  });
+}
+
+export function useGroupMonthlyCalendar(groupId: string, year: number, month: number) {
+  return useQuery({
+    queryKey: ['group-calendar', groupId, year, month] as const,
+    queryFn: () => fetchGroupMonthlyCalendar(groupId, year, month),
+    enabled: Boolean(groupId && groupId.length > 0),
+    staleTime: STALE_TIMES.calendar,
+  });
+}
+
+export function useGroupStreakMembers(groupId: string) {
+  return useQuery({
+    queryKey: ['group-streak-members', groupId] as const,
+    queryFn: () => fetchGroupStreakMembers(groupId),
+    enabled: Boolean(groupId && groupId.length > 0),
+    staleTime: STALE_TIMES.calendar,
+  });
+}
+
+export function useComparativeDuel(member1Id: string, member2Id: string, groupId?: string) {
+  return useQuery({
+    queryKey: ['comparative-duel', member1Id, member2Id, groupId ?? 'all'] as const,
+    queryFn: () => fetchComparativeDuel(member1Id, member2Id, groupId),
+    enabled: Boolean(member1Id && member2Id),
+    staleTime: STALE_TIMES.calendar,
+  });
+}
+
+export function useUserYearHeatmap(userId: string) {
+  return useQuery({
+    queryKey: ['user-year-heatmap', userId] as const,
+    queryFn: () => fetchUserYearHeatmap(userId),
+    enabled: Boolean(userId && userId.length > 0),
+    staleTime: STALE_TIMES.calendar,
+  });
+}
+
+// ─── Mutation Hooks ──────────────────────────────────────────────────────────
+
+export function useDeclareRestDay() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ activityId, targetDate }: { activityId: string; targetDate?: string }) =>
+      declareRestDay(activityId, targetDate),
+    onSuccess: (updatedStreak) => {
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.streaks(updatedStreak.userId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.streak(updatedStreak.userId, updatedStreak.activityId),
+      });
+      queryClient.invalidateQueries({ queryKey: ['group-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['group-streak-members'] });
+    },
+  });
+}
+
+export function useConsumeStreakShield() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ activityId, missedDate }: { activityId: string; missedDate: string }) =>
+      consumeStreakShield(activityId, missedDate),
+    onSuccess: (updatedStreak) => {
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.streaks(updatedStreak.userId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.streak(updatedStreak.userId, updatedStreak.activityId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.currentUser,
+      });
+      queryClient.invalidateQueries({ queryKey: ['group-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['group-streak-members'] });
+    },
   });
 }
