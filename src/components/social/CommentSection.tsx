@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, Pressable, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, StyleSheet, TextInput, Pressable, Platform } from 'react-native';
 import { Text } from '../ui/Text';
 import { Avatar } from '../ui/Avatar';
-import { COLORS, SPACE, RADIUS, TYPOGRAPHY } from '@/constants/theme';
+import { COLORS, SPACE, RADIUS } from '@/constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { formatDistanceToNow } from 'date-fns';
 
 type CommentData = {
   id: string;
@@ -17,10 +18,12 @@ type CommentData = {
 type Props = {
   comments: CommentData[];
   onAddComment?: (text: string) => void;
+  onDeleteComment?: (commentId: string) => void;
   currentUser?: { avatarUrl: string | null };
+  currentUserId?: string;
 };
 
-export function CommentSection({ comments, onAddComment, currentUser }: Props) {
+export function CommentSection({ comments, onAddComment, onDeleteComment, currentUser, currentUserId }: Props) {
   const [inputText, setInputText] = useState('');
 
   const handleSend = () => {
@@ -33,19 +36,44 @@ export function CommentSection({ comments, onAddComment, currentUser }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.commentsList}>
-        {comments.map(comment => (
-          <View key={comment.id} style={styles.commentRow}>
-            <Avatar url={comment.avatarUrl} size={24} name={comment.username} />
-            <View style={styles.commentBubble}>
-              <Text variant="caption" color={COLORS.textSecondary} style={styles.username}>
-                @{comment.username}
-              </Text>
-              <Text variant="body" color={COLORS.textPrimary} style={styles.commentText}>
-                {comment.text}
-              </Text>
+        {comments.map(comment => {
+          let timeAgo = '';
+          try {
+            timeAgo = formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true });
+          } catch {
+            timeAgo = 'recently';
+          }
+
+          const isAuthor = currentUserId && comment.userId === currentUserId;
+
+          return (
+            <View key={comment.id} style={styles.commentRow}>
+              <Avatar url={comment.avatarUrl} size={24} name={comment.username} />
+              <View style={styles.commentBubble}>
+                <View style={styles.commentMetaRow}>
+                  <Text variant="caption" color={COLORS.textSecondary} style={styles.username}>
+                    @{comment.username}
+                  </Text>
+                  <Text variant="caption" color={COLORS.textTertiary} style={styles.timeAgo}>
+                    • {timeAgo}
+                  </Text>
+                  {isAuthor && onDeleteComment && (
+                    <Pressable
+                      onPress={() => onDeleteComment(comment.id)}
+                      hitSlop={8}
+                      style={styles.deleteBtn}
+                    >
+                      <MaterialCommunityIcons name="trash-can-outline" size={14} color={COLORS.textTertiary} />
+                    </Pressable>
+                  )}
+                </View>
+                <Text variant="body" color={COLORS.textPrimary} style={styles.commentText}>
+                  {comment.text}
+                </Text>
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
 
       <View style={styles.inputRow}>
@@ -109,9 +137,21 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 4,
     flex: 1,
   },
+  commentMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+  },
+  timeAgo: {
+    fontSize: 10,
+  },
+  deleteBtn: {
+    marginLeft: 'auto',
+    padding: 2,
+  },
   username: {
     fontWeight: '600',
-    marginBottom: 2,
   },
   commentText: {
     fontSize: 14,

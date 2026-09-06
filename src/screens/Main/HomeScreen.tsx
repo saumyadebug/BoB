@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, FlatList, StyleSheet, SafeAreaView, Pressable, RefreshControl } from 'react-native';
+import { View, FlatList, StyleSheet, SafeAreaView, Pressable, RefreshControl, ScrollView } from 'react-native';
 import { Text, Icon, Avatar, Badge, Button } from '@/components/ui';
 import { COLORS, RADIUS, SPACE } from '@/constants/theme';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useMockFeed, MockFeedItem } from '@/hooks/useMockFeed';
+import { useUserGroups } from '@/hooks';
 import { FeedCard } from '@/components/ui/FeedCard';
 import { TodayBanner } from '@/components/ui/TodayBanner';
 import { useNavigation } from '@react-navigation/native';
@@ -12,6 +13,8 @@ export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
   const [feedFilter, setFeedFilter] = useState<'all' | 'mine'>('all');
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const { data: userGroups = [] } = useUserGroups();
   
   // Use our new mock hook for Phase 7 UI build-out
   const { data: allSubmissions, isLoading: feedLoading, refetch } = useMockFeed();
@@ -21,8 +24,11 @@ export default function HomeScreen() {
     if (feedFilter === 'mine' && user?.id) {
       list = list.filter(s => s.userId === user.id);
     }
+    if (selectedGroupId) {
+      list = list.filter(s => s.groupId === selectedGroupId);
+    }
     return list;
-  }, [allSubmissions, feedFilter, user?.id]);
+  }, [allSubmissions, feedFilter, selectedGroupId, user?.id]);
 
   const renderItem = ({ item }: { item: MockFeedItem }) => {
     return (
@@ -64,6 +70,8 @@ export default function HomeScreen() {
           <>
             <HomeHeader
               name={user?.displayName || 'Mark'}
+              avatarUrl={user?.avatarUrl}
+              pactsCount={userGroups.length}
               feedFilter={feedFilter}
               setFeedFilter={setFeedFilter}
             />
@@ -106,6 +114,56 @@ export default function HomeScreen() {
                 </Pressable>
               </View>
             </View>
+
+            {/* Horizontal Squad Selector Pills */}
+            {userGroups.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.groupFilterScroll}
+              >
+                <Pressable
+                  onPress={() => setSelectedGroupId(null)}
+                  style={[
+                    styles.groupFilterChip,
+                    selectedGroupId === null
+                      ? styles.groupFilterChipActive
+                      : styles.groupFilterChipInactive,
+                  ]}
+                >
+                  <Text
+                    variant="caption"
+                    color={selectedGroupId === null ? '#FFFFFF' : COLORS.textSecondary}
+                    style={styles.groupFilterText}
+                  >
+                    ✨ All Squads
+                  </Text>
+                </Pressable>
+                {userGroups.map((group) => {
+                  const isSelected = selectedGroupId === group.id;
+                  return (
+                    <Pressable
+                      key={group.id}
+                      onPress={() => setSelectedGroupId(isSelected ? null : group.id)}
+                      style={[
+                        styles.groupFilterChip,
+                        isSelected
+                          ? styles.groupFilterChipActive
+                          : styles.groupFilterChipInactive,
+                      ]}
+                    >
+                      <Text
+                        variant="caption"
+                        color={isSelected ? '#FFFFFF' : COLORS.textSecondary}
+                        style={styles.groupFilterText}
+                      >
+                        {group.emoji || '⚡'} {group.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
           </>
         }
         renderItem={renderItem}
@@ -126,8 +184,14 @@ export default function HomeScreen() {
 
 function HomeHeader({
   name,
+  avatarUrl,
+  pactsCount,
+  feedFilter,
+  setFeedFilter,
 }: {
   name: string;
+  avatarUrl?: string | null;
+  pactsCount: number;
   feedFilter: 'all' | 'mine';
   setFeedFilter: (f: 'all' | 'mine') => void;
 }) {
@@ -145,7 +209,7 @@ function HomeHeader({
             Hey, {firstName}
           </Text>
         </View>
-        <Avatar name={name} size={48} url="https://i.pravatar.cc/150?u=user1" />
+        <Avatar name={name} size={48} url={avatarUrl ?? null} />
       </View>
 
       {/* Stats Card */}
@@ -186,7 +250,7 @@ function HomeHeader({
             <Text variant="caption" color={COLORS.textSecondary}>Pacts</Text>
           </View>
           <Text variant="numericMd" color={COLORS.textPrimary} style={styles.statVal}>
-            3
+            {pactsCount}
           </Text>
         </View>
       </View>
@@ -257,6 +321,31 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bgPanel,
     borderWidth: 1,
     borderColor: COLORS.hairline,
+  },
+  groupFilterScroll: {
+    paddingHorizontal: SPACE.lg,
+    paddingBottom: SPACE.md,
+    gap: SPACE.xs,
+  },
+  groupFilterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  groupFilterChipActive: {
+    backgroundColor: COLORS.accentMuted,
+    borderWidth: 1,
+    borderColor: COLORS.accentBlue,
+  },
+  groupFilterChipInactive: {
+    backgroundColor: COLORS.bgPanel,
+    borderWidth: 1,
+    borderColor: COLORS.hairline,
+  },
+  groupFilterText: {
+    fontWeight: '600',
   },
   empty: {
     paddingHorizontal: SPACE.lg,

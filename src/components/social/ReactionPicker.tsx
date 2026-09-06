@@ -19,6 +19,7 @@ type Props = {
   initialCounts?: Record<string, number>;
   userReaction?: string;
   onReact?: (emoji: string) => void;
+  onShowReactions?: () => void;
 };
 
 // Reanimated handles basic styles well on Web, no need to disable unless it crashes
@@ -28,12 +29,14 @@ function ReactionButton({
   emoji, 
   count, 
   isActive, 
-  onPress 
+  onPress,
+  onLongPress,
 }: { 
   emoji: string; 
   count: number; 
   isActive: boolean; 
   onPress: () => void;
+  onLongPress?: () => void;
 }) {
   const scale = useSharedValue(1);
 
@@ -58,6 +61,7 @@ function ReactionButton({
     <View>
       <Pressable 
         onPress={handlePress}
+        onLongPress={onLongPress}
         style={[
           styles.reactionButton,
           isActive && styles.reactionActive
@@ -67,9 +71,17 @@ function ReactionButton({
           {emoji}
         </Animated.Text>
         {count > 0 && (
-          <Text variant="caption" color={isActive ? COLORS.accentBlue : COLORS.textSecondary} style={styles.count}>
-            {count}
-          </Text>
+          <Pressable 
+            onPress={(e) => {
+              e.stopPropagation();
+              onLongPress?.();
+            }}
+            hitSlop={6}
+          >
+            <Text variant="caption" color={isActive ? COLORS.accentBlue : COLORS.textSecondary} style={styles.count}>
+              {count}
+            </Text>
+          </Pressable>
         )}
       </Pressable>
     </View>
@@ -109,7 +121,7 @@ function FloatingReaction({ emoji, onComplete }: { emoji: string; onComplete: ()
   );
 }
 
-export function ReactionPicker({ initialCounts = {}, userReaction, onReact }: Props) {
+export function ReactionPicker({ initialCounts = {}, userReaction, onReact, onShowReactions }: Props) {
   const [counts, setCounts] = useState(initialCounts);
   const [activeReaction, setActiveReaction] = useState<string | undefined>(userReaction);
   const [floatingEmojis, setFloatingEmojis] = useState<{ id: number; emoji: string }[]>([]);
@@ -151,6 +163,7 @@ export function ReactionPicker({ initialCounts = {}, userReaction, onReact }: Pr
               count={counts[emoji] || 0}
               isActive={activeReaction === emoji}
               onPress={() => handleReact(emoji)}
+              onLongPress={onShowReactions}
             />
           </View>
         ))}

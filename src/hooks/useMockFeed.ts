@@ -134,19 +134,30 @@ const mockFeed: MockFeedItem[] = [
   }
 ];
 
-export function useMockFeed() {
+import { fetchAggregatedFeed } from '@/services/feedService';
+
+export function useMockFeed(filterUserId?: string) {
   const [feed, setFeed] = useState<MockFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Simulate network delay
-    const timer = setTimeout(() => {
+  const loadFeed = async () => {
+    try {
+      const realItems = await fetchAggregatedFeed(20, filterUserId);
+      if (realItems.length > 0) {
+        setFeed(realItems);
+      } else {
+        setFeed(mockFeed);
+      }
+    } catch {
       setFeed(mockFeed);
+    } finally {
       setLoading(false);
-    }, 800);
+    }
+  };
 
-    return () => clearTimeout(timer);
-  }, []);
+  useEffect(() => {
+    loadFeed();
+  }, [filterUserId]);
 
   return {
     data: feed,
@@ -154,10 +165,9 @@ export function useMockFeed() {
     isError: false,
     refetch: () => {
       setLoading(true);
-      setTimeout(() => {
-        setFeed([...mockFeed]);
-        setLoading(false);
-      }, 800);
+      loadFeed();
     },
   };
 }
+
+export const useLiveFeed = useMockFeed;

@@ -4,7 +4,7 @@ import { Text, Avatar, Card, Badge, Button, Icon, Skeleton, YearOverviewHeatmap 
 import { COLORS, RADIUS } from '@/constants/theme';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCurrentUser, useUserGroups } from '@/hooks';
-import { useUserStreaks } from '@/hooks/useStreaks';
+import { useUserStreaks, useUserYearHeatmap } from '@/hooks/useStreaks';
 import { useUserSubmissions } from '@/hooks/useSubmissions';
 import { useUserBadges, useAllBadges } from '@/hooks/useBadges';
 import { supabase } from '@/services/supabase';
@@ -53,16 +53,15 @@ export default function ProfileScreen() {
   const totalSubmissions = currentUser?.totalSubmissions ?? submissions.length;
   const shields = currentUser?.shieldsAvailable ?? 0;
 
-  // Mock data for YearOverviewHeatmap
+  const { data: realHeatmap = [] } = useUserYearHeatmap(user?.id ?? '');
+
   const heatmapData = useMemo(() => {
-    return Array.from({ length: 364 }).map((_, i) => {
-      const hasSubmission = Math.random() > 0.75;
-      return {
-        date: new Date(Date.now() - (364 - i) * 86400000).toISOString().split('T')[0],
-        count: hasSubmission ? Math.floor(Math.random() * 4) + 1 : 0
-      };
-    });
-  }, []);
+    if (realHeatmap.length > 0) return realHeatmap;
+    return Array.from({ length: 364 }).map((_, i) => ({
+      date: new Date(Date.now() - (364 - i) * 86400000).toISOString().split('T')[0],
+      count: 0,
+    }));
+  }, [realHeatmap]);
 
   if (userLoading) {
     return (
