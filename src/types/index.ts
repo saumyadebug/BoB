@@ -258,6 +258,22 @@ export interface UpdateGroupInput {
   groupStreakEnabled?: boolean;
 }
 
+export interface CreateSubmissionInput {
+  activityId: string;
+  groupId: string;
+  photoUrl?: string | null;
+  title?: string | null;
+  description?: string | null;
+  fieldValues?: Record<string, any>;
+  clientTimestamp?: string;
+}
+
+export interface UpdateSubmissionInput {
+  title?: string | null;
+  description?: string | null;
+  fieldValues?: Record<string, any>;
+}
+
 // ─── Navigation Param Types ──────────────────────────────────────────────────
 
 export type AuthStackParamList = {

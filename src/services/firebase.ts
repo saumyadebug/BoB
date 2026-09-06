@@ -3,6 +3,9 @@ import {
   getFirestore,
   collection,
   doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
   onSnapshot,
   query,
   orderBy,
@@ -146,6 +149,45 @@ export function subscribeToNotifications(
     const docs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     callback(docs);
   });
+}
+
+/**
+ * Write a mirrored submission document to Firestore for real-time fanout.
+ */
+export async function setFirestoreSubmission(groupId: string, submissionId: string, data: any): Promise<void> {
+  if (!firestoreInstance) return;
+  try {
+    const docRef = doc(firestoreInstance, `${COLLECTIONS.feed(groupId)}/${submissionId}`);
+    await setDoc(docRef, data, { merge: true });
+  } catch (err) {
+    console.warn('[firebase] Failed to mirror submission to Firestore:', err);
+  }
+}
+
+/**
+ * Update a mirrored submission document in Firestore.
+ */
+export async function updateFirestoreSubmission(groupId: string, submissionId: string, data: any): Promise<void> {
+  if (!firestoreInstance) return;
+  try {
+    const docRef = doc(firestoreInstance, `${COLLECTIONS.feed(groupId)}/${submissionId}`);
+    await updateDoc(docRef, data);
+  } catch (err) {
+    console.warn('[firebase] Failed to update mirrored submission in Firestore:', err);
+  }
+}
+
+/**
+ * Delete a mirrored submission document from Firestore.
+ */
+export async function deleteFirestoreSubmission(groupId: string, submissionId: string): Promise<void> {
+  if (!firestoreInstance) return;
+  try {
+    const docRef = doc(firestoreInstance, `${COLLECTIONS.feed(groupId)}/${submissionId}`);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.warn('[firebase] Failed to delete mirrored submission from Firestore:', err);
+  }
 }
 
 export { isFirebaseConfigured };

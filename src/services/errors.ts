@@ -20,7 +20,9 @@ export type AppErrorCode =
   | 'NOT_ADMIN'
   | 'NOT_ALLOWED'
   | 'NETWORK'
-  | 'STORAGE';
+  | 'STORAGE'
+  | 'DUPLICATE_SUBMISSION'
+  | 'VALIDATION';
 
 // ─── AppError ────────────────────────────────────────────────────────────────
 
