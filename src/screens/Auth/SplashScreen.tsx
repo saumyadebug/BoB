@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@/store/useAuthStore';
 import { supabase } from '@/services/supabase';
 import { userService } from '@/services/userService';
+import Constants from 'expo-constants';
 
 const { width } = Dimensions.get('window');
 
@@ -121,7 +122,7 @@ export default function SplashScreen({ navigation }: any) {
 
       <View style={styles.footer}>
         <Text variant="caption" color={COLORS.textTertiary} style={styles.version}>
-          v1.0.0
+          v{Constants.expoConfig?.version || '1.0.0'}
         </Text>
       </View>
     </SafeAreaView>

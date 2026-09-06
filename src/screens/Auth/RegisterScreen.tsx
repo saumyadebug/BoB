@@ -29,6 +29,7 @@ function mapSupabaseAuthError(err: any): AppError {
 export default function RegisterScreen({ navigation }: any) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState<string | null>(null);
   const { setSession } = useAuthStore();
 
   const { control, handleSubmit, watch, formState: { errors } } = useForm<RegisterForm>({
@@ -56,8 +57,8 @@ export default function RegisterScreen({ navigation }: any) {
         setSession(signUpData.session);
         navigation.replace('SetupProfile');
       } else {
-        // Email confirmation required â€” surface a message.
-        setAuthError('Check your email to verify your account, then sign in.');
+        // Email confirmation required — show dedicated verification screen.
+        setEmailSent(data.email);
       }
     } catch (e: any) {
       if (isAppError(e)) {
@@ -69,6 +70,40 @@ export default function RegisterScreen({ navigation }: any) {
       setIsLoading(false);
     }
   };
+
+  if (emailSent) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={[styles.scroll, { justifyContent: 'center', alignItems: 'center' }]}>
+          <VoltMark size={64} withHalo />
+          <View style={{ height: 24 }} />
+          <Text variant="headingLg" color={COLORS.textPrimary} style={{ textAlign: 'center' }}>
+            Check your email ✉️
+          </Text>
+          <View style={{ height: 10 }} />
+          <Text variant="body" color={COLORS.textSecondary} style={{ textAlign: 'center', paddingHorizontal: 16 }}>
+            We've sent a verification link to{' '}
+            <Text style={{ color: COLORS.accentBlue }}>{emailSent}</Text>.
+            Please click the link to verify your account, then sign in.
+          </Text>
+          <View style={{ height: 32 }} />
+          <Button
+            label="Go to Sign In"
+            variant="primary"
+            onPress={() => navigation.navigate('Login')}
+            fullWidth
+          />
+          <View style={{ height: 12 }} />
+          <Button
+            label="Try another email"
+            variant="ghost"
+            onPress={() => setEmailSent(null)}
+            fullWidth
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

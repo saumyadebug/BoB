@@ -42,14 +42,14 @@
 - [x] Set up Supabase Storage bucket `submission-photos`
 - [x] Create Firestore collections structure
 - [x] Write Firestore security rules
-- [ ] Set up Supabase Edge Functions project
+- [x] Set up Supabase Edge Functions project
 
 ### 1.5 State Management & Data Layer
 - [x] Install and configure Zustand stores
 - [x] Install TanStack Query with QueryClient config
 - [x] Create API service layer with Supabase/Firebase clients
 - [x] Set up offline submission queue (AsyncStorage)
-- [ ] Create custom hooks: useCurrentUser, useGroups, useActivities, useSubmissions, useStreaks
+- [x] Create custom hooks: useCurrentUser, useGroups, useActivities, useSubmissions, useStreaks
 
 ---
 
@@ -58,7 +58,7 @@
 ### 2.1 Splash Screen
 - [x] Animated splash with Volt mascot Lottie
 - [x] Auto-redirect logic (JWT check)
-- [ ] App version check
+- [x] App version check
 
 ### 2.2 Onboarding Carousel
 - [x] 3-slide animated value prop carousel
@@ -70,7 +70,7 @@
 - [x] Login screen (email/password + Google OAuth)
 - [x] Register screen (email/password + Google OAuth)
 - [x] Firebase Auth integration (create, login, Google sign-in)
-- [ ] Email verification flow
+- [x] Email verification flow
 - [x] JWT token management (SecureStore)
 - [x] Error handling (invalid credentials, existing email, network)
 - [x] Form validation (React Hook Form + Zod)
@@ -79,8 +79,8 @@
 - [x] Username input with real-time availability check
 - [x] Username validation (3–20 chars, alphanumeric + underscore)
 - [x] Avatar picker (12 presets + camera upload)
-- [ ] Camera upload + crop + compress + upload to Supabase Storage
-- [ ] Create user record in Supabase `users` table
+- [x] Camera upload + crop + compress + upload to Supabase Storage
+- [x] Create user record in Supabase `users` table
 
 ### 2.5 "Start a Pact or Join One" Screen
 - [x] Two illustrated action cards with animated entrance

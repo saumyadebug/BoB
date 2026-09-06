@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, Pressable, Image } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Pressable, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, Input, Button, Icon } from '@/components/ui';
 import { COLORS, RADIUS } from '@/constants/theme';
@@ -10,6 +10,7 @@ import { useUsernameAvailability } from '@/hooks/useCurrentUser';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '@/store/useAuthStore';
 import { userService } from '@/services/userService';
+import { uploadAvatar } from '@/services/supabase';
 
 type ProfileForm = ProfileFormValues;
 
@@ -27,13 +28,45 @@ export default function SetupProfileScreen({ navigation }: any) {
   const availability = useUsernameAvailability(watchedUsername || '');
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.6,
-    });
-    if (!result.canceled) setAvatar(result.assets[0].uri);
+    Alert.alert(
+      'Profile Photo',
+      'Choose an option to set your avatar:',
+      [
+        {
+          text: 'Take Photo 📸',
+          onPress: async () => {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Permission needed', 'Camera permission is required to take a photo.');
+              return;
+            }
+            const res = await ImagePicker.launchCameraAsync({
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.6,
+            });
+            if (!res.canceled && res.assets?.[0]?.uri) {
+              setAvatar(res.assets[0].uri);
+            }
+          },
+        },
+        {
+          text: 'Choose from Library 🖼️',
+          onPress: async () => {
+            const res = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.6,
+            });
+            if (!res.canceled && res.assets?.[0]?.uri) {
+              setAvatar(res.assets[0].uri);
+            }
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
   };
 
   const onSubmit = async (data: ProfileForm) => {
@@ -56,10 +89,20 @@ export default function SetupProfileScreen({ navigation }: any) {
         session?.user?.email?.split('@')[0] ||
         data.username;
 
+      let finalAvatarUrl = avatar || user?.avatarUrl || null;
+      if (avatar && (avatar.startsWith('file:') || avatar.startsWith('blob:') || avatar.startsWith('data:'))) {
+        try {
+          const publicUrl = await uploadAvatar(session?.user?.id || 'avatar', avatar);
+          if (publicUrl) finalAvatarUrl = publicUrl;
+        } catch (err) {
+          console.warn('[SetupProfile] Avatar upload failed, falling back:', err);
+        }
+      }
+
       const saved = await userService.ensureCurrentUser({
         username: data.username,
         displayName: fallbackDisplayName,
-        avatarUrl: avatar || user?.avatarUrl || null,
+        avatarUrl: finalAvatarUrl,
       });
       setUser(saved);
       navigation.replace('BiometricSetup');
